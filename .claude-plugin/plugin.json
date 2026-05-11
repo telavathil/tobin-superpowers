@@ -1,0 +1,16 @@
+{
+  "name": "tobin-superpowers",
+  "description": "Personal fork of superpowers adding HTML companions to brainstorming, writing-plans, requesting-code-review, and subagent-driven-development",
+  "version": "0.1.0",
+  "author": {
+    "name": "Tobin Elavathil",
+    "email": "tobin.elavathil@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "superpowers",
+    "html-companion",
+    "fork"
+  ]
+}
