@@ -116,6 +116,10 @@ Versioned independently from upstream `superpowers`. When a superpowers
 release updates one of the four modified skills, review the upstream diff
 and merge non-companion changes by hand.
 
+See [`MAINTAINING.md`](MAINTAINING.md) for the full step-by-step upstream
+merge workflow, including the verification commands and the one known
+brainstorming-checklist gotcha.
+
 ## License
 
 MIT. Upstream `superpowers` is also MIT.
