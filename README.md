@@ -39,7 +39,7 @@ already installed.
 ### Option A — install from GitHub (after pushing)
 
 ```
-/plugin marketplace add tobin/tobin-superpowers
+/plugin marketplace add telavathil/tobin-superpowers
 /plugin install tobin-superpowers@tobin-superpowers-dev
 ```
 
