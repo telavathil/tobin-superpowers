@@ -1,0 +1,20 @@
+{
+  "name": "tobin-superpowers-dev",
+  "description": "Development marketplace for the tobin-superpowers personal fork",
+  "owner": {
+    "name": "Tobin Elavathil",
+    "email": "tobin.elavathil@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "tobin-superpowers",
+      "description": "Personal fork of superpowers adding HTML companions to brainstorming, writing-plans, requesting-code-review, and subagent-driven-development",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "Tobin Elavathil",
+        "email": "tobin.elavathil@gmail.com"
+      }
+    }
+  ]
+}

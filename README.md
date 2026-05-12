@@ -34,15 +34,32 @@ Skill-specific rendering priorities live inside each modified `SKILL.md`.
 ## Installation
 
 In Claude Code, with [`superpowers`](https://github.com/obra/superpowers)
-already installed:
+already installed.
+
+### Option A — install from GitHub (after pushing)
 
 ```
-/plugin install tobin/tobin-superpowers@github
+/plugin marketplace add tobin/tobin-superpowers
+/plugin install tobin-superpowers@tobin-superpowers-dev
 ```
 
-When this plugin is active alongside `superpowers`, the four modified
-skills override their upstream equivalents. The other ten superpowers
-skills are unchanged and continue to come from upstream.
+The first command registers this repo's `.claude-plugin/marketplace.json`
+as a marketplace named `tobin-superpowers-dev`. The second installs the
+`tobin-superpowers` plugin from that marketplace.
+
+### Option B — install from a local clone (for dogfooding)
+
+```
+/plugin marketplace add ~/dev/tobin-superpowers
+/plugin install tobin-superpowers@tobin-superpowers-dev
+```
+
+Same flow, but the marketplace points at a local working tree. Useful
+while iterating on the fork before pushing.
+
+After install: when this plugin is active alongside `superpowers`, the
+four modified skills override their upstream equivalents. The other ten
+superpowers skills are unchanged and continue to come from upstream.
 
 ## How the Fork Is Structured
 
@@ -69,7 +86,8 @@ unchanged unless the shared HTML companion guide also evolves.
 ```
 tobin-superpowers/
 ├── .claude-plugin/
-│   └── plugin.json
+│   ├── plugin.json
+│   └── marketplace.json
 ├── skills/
 │   ├── shared/
 │   │   └── html-companion-guide.md
