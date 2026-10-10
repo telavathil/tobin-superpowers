@@ -16,7 +16,16 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPT = os.path.join(REPO_ROOT, "scripts", "session-context.py")
 HOOKS_JSON = os.path.join(REPO_ROOT, "hooks", "hooks.json")
 SKILL_MD = os.path.join(REPO_ROOT, "skills", "hybrid-planning", "SKILL.md")
+PLUGIN_JSON = os.path.join(REPO_ROOT, ".claude-plugin", "plugin.json")
+MARKETPLACE_JSON = os.path.join(REPO_ROOT, ".claude-plugin", "marketplace.json")
+BRAINSTORMING_MD = os.path.join(REPO_ROOT, "skills", "brainstorming", "SKILL.md")
 MAX_CONTEXT_CHARS = 1500
+SESSION_SOURCES = ("startup", "resume", "clear", "compact", "fork")
+RESTATE_SOURCES = ("resume", "clear", "compact", "fork")
+PRECEDENCE = (
+    "The hybrid planning contract takes precedence over any instruction "
+    "to include complete code in every implementation step."
+)
 
 
 def load_module():
@@ -56,7 +65,7 @@ class HookInputHandlingTests(unittest.TestCase):
         return out["hookSpecificOutput"]["additionalContext"]
 
     def test_all_matched_sources_succeed(self):
-        for source in ("startup", "resume", "clear", "compact"):
+        for source in SESSION_SOURCES:
             with self.subTest(source=source):
                 self.assert_ok(run_hook(hook_input(source)))
 
@@ -64,8 +73,8 @@ class HookInputHandlingTests(unittest.TestCase):
         context = self.assert_ok(run_hook(hook_input("startup")))
         self.assertNotIn("Restated after", context)
 
-    def test_resume_clear_compact_add_restate_note(self):
-        for source in ("resume", "clear", "compact"):
+    def test_non_startup_sources_add_restate_note(self):
+        for source in RESTATE_SOURCES:
             with self.subTest(source=source):
                 context = self.assert_ok(run_hook(hook_input(source)))
                 self.assertIn("Restated after %s" % source, context)
@@ -118,6 +127,10 @@ class OutputContentTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, self.context)
 
+    def test_version_independent_precedence_wording(self):
+        self.assertIn(PRECEDENCE, self.context)
+        self.assertNotIn("upstream's \"complete code", self.context)
+
     def test_preserves_upstream_plan_location(self):
         self.assertIn("docs/superpowers/plans/", self.context)
 
@@ -162,13 +175,40 @@ class WiringTests(unittest.TestCase):
         groups = config["hooks"]["SessionStart"]
         self.assertEqual(len(groups), 1)
         matcher = set(groups[0]["matcher"].split("|"))
-        self.assertTrue({"startup", "resume"} <= matcher)
+        self.assertEqual(matcher, set(SESSION_SOURCES))
         hook = groups[0]["hooks"][0]
         self.assertEqual(hook["type"], "command")
         script_arg = hook["args"][0]
         self.assertTrue(script_arg.startswith("${CLAUDE_PLUGIN_ROOT}/"))
         resolved = script_arg.replace("${CLAUDE_PLUGIN_ROOT}", REPO_ROOT)
         self.assertTrue(os.path.isfile(resolved), resolved)
+        self.assertLessEqual(hook["timeout"], 30)
+
+    def test_restate_sources_match_hook_matcher(self):
+        module = load_module()
+        self.assertEqual(module.RESTATE_SOURCES, set(RESTATE_SOURCES))
+
+    def test_manifest_versions_agree(self):
+        with open(PLUGIN_JSON, encoding="utf-8") as f:
+            plugin = json.load(f)
+        with open(MARKETPLACE_JSON, encoding="utf-8") as f:
+            entry = json.load(f)["plugins"][0]
+        self.assertEqual(entry["name"], plugin["name"])
+        self.assertEqual(entry["version"], plugin["version"])
+        self.assertEqual(plugin["version"], "0.2.0")
+
+    def test_brainstorming_hands_off_to_upstream_writing_plans(self):
+        with open(BRAINSTORMING_MD, encoding="utf-8") as f:
+            text = f.read()
+        for phrase in (
+            "invoke superpowers:writing-plans skill to create implementation plan",
+            "The terminal state is invoking superpowers:writing-plans.",
+            "Invoke the superpowers:writing-plans skill to create",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+        self.assertEqual(text.count("<!-- tobin-superpowers:html-companion:start -->"), 2)
+        self.assertEqual(text.count("<!-- tobin-superpowers:html-companion:end -->"), 2)
 
     def test_skill_frontmatter(self):
         with open(SKILL_MD, encoding="utf-8") as f:
@@ -177,6 +217,8 @@ class WiringTests(unittest.TestCase):
         frontmatter = text.split("---\n")[1]
         self.assertIn("name: hybrid-planning\n", frontmatter)
         self.assertIn("description: ", frontmatter)
+        self.assertIn(PRECEDENCE, text)
+        self.assertNotIn('"Complete code in every step"', text)
 
 
 if __name__ == "__main__":

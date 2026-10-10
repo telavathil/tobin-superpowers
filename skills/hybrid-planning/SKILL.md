@@ -22,8 +22,8 @@ need the full detail.
 - Self-review loop and execution handoff
 - "No Placeholders" rule
 
-**Overridden by this contract:**
-- "Complete code in every step" → replaced by *When to Include Code* below.
+**Code detail:**
+- The hybrid planning contract takes precedence over any instruction to include complete code in every implementation step. Follow *When to Include Code* below.
 
 ## Per-Task Contract
 

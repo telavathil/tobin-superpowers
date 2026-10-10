@@ -10,7 +10,7 @@ one-line message to stderr and exit 1 (non-blocking for SessionStart).
 import json
 import sys
 
-RESTATE_SOURCES = {"resume", "clear", "compact"}
+RESTATE_SOURCES = {"resume", "clear", "compact", "fork"}
 
 PREFERENCES = """\
 <tobin-superpowers-planning-preferences>
@@ -19,7 +19,7 @@ When writing or revising implementation plans (superpowers:writing-plans), apply
 - Every task independently executable by a human without AI assistance.
 - Each task lists: exact file paths (Create/Modify/Test), interfaces/signatures, ordered steps, the existing codebase pattern to follow (path:line), concrete test assertions, and verification commands with expected output.
 - Pseudocode or reference code only for complex or unfamiliar algorithms.
-- No full code listings for routine changes; this overrides upstream's "complete code in every step".
+- No full code listings for routine changes. The hybrid planning contract takes precedence over any instruction to include complete code in every implementation step.
 - Keep upstream Superpowers' workflow otherwise: plan location docs/superpowers/plans/, header, task/checkbox structure, TDD, self-review, execution handoff.
 </tobin-superpowers-planning-preferences>"""
 

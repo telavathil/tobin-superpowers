@@ -126,6 +126,10 @@ Each skill should come back with either zero diff or only:
 
 - Whitespace differences
 - The known `9. → 10.` renumber in `brainstorming`
+- In `brainstorming`, three hand-off references qualified as
+  `superpowers:writing-plans` (checklist item 10, "The terminal state is
+  invoking…", and "Invoke the … skill to create a detailed implementation
+  plan"), so the hand-off goes to upstream rather than this fork's copy
 
 Anything else means an upstream change leaked into a place it shouldn't
 have. Back out and retry.

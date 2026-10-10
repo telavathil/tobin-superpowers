@@ -88,7 +88,13 @@ tobin-superpowers/
 ├── .claude-plugin/
 │   ├── plugin.json
 │   └── marketplace.json
+├── hooks/
+│   └── hooks.json                 # SessionStart hook registration
+├── scripts/
+│   └── session-context.py         # injects hybrid planning preferences
 ├── skills/
+│   ├── hybrid-planning/
+│   │   └── SKILL.md               # lean, human-executable plan contract
 │   ├── shared/
 │   │   └── html-companion-guide.md
 │   ├── brainstorming/
@@ -107,8 +113,37 @@ tobin-superpowers/
 │       ├── implementer-prompt.md
 │       ├── spec-reviewer-prompt.md
 │       └── code-quality-reviewer-prompt.md
+├── tests/
+│   └── test_session_context.py    # python3 -m unittest discover -s tests -v
+├── MAINTAINING.md
 └── README.md
 ```
+
+## Hybrid Planning Hook
+
+A `SessionStart` hook (`hooks/hooks.json` → `scripts/session-context.py`)
+injects concise planning preferences on startup, resume, clear, compact,
+and fork. They point Claude at the `tobin-superpowers:hybrid-planning`
+skill, which layers a lean, human-executable plan contract on top of
+upstream `superpowers:writing-plans`. The contract takes precedence over
+any instruction to include complete code in every implementation step.
+
+Requires `python3` on `PATH` (macOS, Linux, WSL). The `fork` source needs
+Claude Code v2.1.214 or later; older versions report forks as `resume`,
+which is also matched.
+
+### Upstream compatibility
+
+Tested with `superpowers` **7.0.0** (from the `obra/superpowers`
+marketplace) and Claude Code 2.1.296. In 7.0.0, `writing-plans` already
+favours signatures and test assertions over full code, so it agrees with
+the hybrid contract.
+
+Older `superpowers` releases — including the copy forked into this repo at
+`skills/writing-plans/` — still require "complete code in every step".
+The injected precedence wording overrides that, but if you see plans with
+full code listings for routine changes, check which `writing-plans` was
+invoked and which upstream version is installed.
 
 ## Versioning
 
