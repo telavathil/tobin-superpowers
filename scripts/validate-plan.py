@@ -176,6 +176,8 @@ COMMAND_NAMES = (
 COMMAND_RE = re.compile(
     r"^(?:\$\s*)?(?:[A-Z_]+=\S+\s+)*(?:(?:" + COMMAND_NAMES + r")(?=\s+[^\s=:(]|$)|\.{1,2}/\S+|\S+\.(?:sh|ps1|bat|cmd)\b)"
 )
+# A label directly before a backticked snippet: "Run `x`", "**Verify:** `x`".
+RUN_LABEL_RE = re.compile(r"\b(?:run|verify|verification|command)\b[\W_]{0,4}`([^`]+)`", re.I)
 EXPECTED_RES = (
     re.compile(r"\bexpect(?:ed|s)?\b|\bshould\s+(?:pass|fail|print|output|show|return)", re.I),
     re.compile(r"→|=>"),
@@ -292,8 +294,17 @@ def check_tests(task):
         "or write 'No tests: <reason>'.")]
 
 
-def is_command(text):
-    return COMMAND_RE.match(text.strip()) is not None
+def is_command(text, require_args=False):
+    """True if text looks like a shell command.
+
+    With require_args, a bare word such as `make` or `node` only counts when it
+    has arguments or starts with ./ — so sample words and file paths in prose
+    are not mistaken for verification commands.
+    """
+    text = text.strip()
+    if COMMAND_RE.match(text) is None:
+        return False
+    return not require_args or len(text.split()) > 1 or text.startswith(("./", "../"))
 
 
 def check_verification(task):
@@ -302,8 +313,11 @@ def check_verification(task):
         if line.in_code:
             if line.code_lang in SHELL_LANGS and not FENCE_RE.match(line.text) and is_command(line.text):
                 has_command = True
-        elif any(is_command(snippet) for snippet in BACKTICK_RE.findall(line.text)):
-            has_command = True
+        else:
+            labelled = set(RUN_LABEL_RE.findall(line.text))
+            if any(is_command(snippet, require_args=snippet not in labelled)
+                   for snippet in BACKTICK_RE.findall(line.text)):
+                has_command = True
     if not has_command:
         return [Finding(
             "verification", "error", task.line, task.number,
@@ -464,14 +478,21 @@ def format_finding(display_path, f):
     return "%s: %s [%s]%s %s\n    fix: %s" % (where, f.severity, f.rule, task, f.message, f.suggestion)
 
 
-def format_summary(findings):
+def plural(count, word):
+    return "%d %s%s" % (count, word, "" if count == 1 else "s")
+
+
+def format_summary(findings, include_info=True):
     counts = summarize(findings)
-    return "%d errors, %d warnings, %d info" % (counts["errors"], counts["warnings"], counts["info"])
+    parts = [plural(counts["errors"], "error"), plural(counts["warnings"], "warning")]
+    if include_info:
+        parts.append("%d info" % counts["info"])
+    return ", ".join(parts)
 
 
-def format_text(display_path, findings):
+def format_text(display_path, findings, include_info=True):
     body = [format_finding(display_path, f) for f in findings]
-    body.append("Summary: %s — %s" % (format_summary(findings), display_path))
+    body.append("Summary: %s — %s" % (format_summary(findings, include_info), display_path))
     return "\n".join(body)
 
 

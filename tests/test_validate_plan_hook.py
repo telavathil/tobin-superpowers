@@ -116,6 +116,9 @@ class FeedbackTests(HookTestCase):
         self.assertIn("fix:", context)
         self.assertIn("advisory", context.lower())
         self.assertIn("already", context.lower())
+        self.assertIn("has 6 errors, 2 warnings.", context)
+        self.assertIn("Summary: 6 errors, 2 warnings —", context)
+        self.assertNotIn("info", context)
         self.assertIn("6 errors", data["systemMessage"])
         self.assertNotIn(self.tmp, data["systemMessage"])
 
@@ -131,6 +134,19 @@ class FeedbackTests(HookTestCase):
         context = data["hookSpecificOutput"]["additionalContext"]
         self.assertIn("warning [pattern]", context)
         self.assertNotIn("error [", context)
+        self.assertIn("has 0 errors, 1 warning.", context)
+        self.assertNotIn("info", context)
+
+    def test_single_error_is_singular(self):
+        path = os.path.join(self.plans, "one.md")
+        with open(self.valid, encoding="utf-8") as f:
+            text = f.read().replace(
+                "**Interfaces:**\n- Produces: `count_syllables(word: str) -> int` — always ≥ 1.\n", "")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(text)
+        data = self.assert_feedback(self.run_payload(self.payload(path)))
+        self.assertIn("has 1 error, 0 warnings.", data["hookSpecificOutput"]["additionalContext"])
+        self.assertIn("Plan validation: 1 error, 0 warnings in", data["systemMessage"])
 
     def test_edit_tool_validates_file_on_disk(self):
         data = self.assert_feedback(self.run_payload(self.payload(self.incomplete, tool="Edit")))

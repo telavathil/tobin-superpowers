@@ -72,14 +72,14 @@ def build_output(validator, display, findings):
     reported = [f for f in findings if f.severity in REPORTED]
     if not reported:
         return None
-    summary = validator.format_summary(reported).replace(", 0 info", "")
+    summary = validator.format_summary(reported, include_info=False)
     context = "\n".join([
         "Plan validation (advisory, tobin-superpowers hybrid-planning): %s has %s."
         % (display, summary),
         "The file has already been written; this feedback cannot undo it. Revise the plan "
         "to address these findings, or tell the user why they do not apply.",
         "",
-        validator.format_text(display, reported),
+        validator.format_text(display, reported, include_info=False),
         "",
         "Checks are structural (paths, interfaces, steps, tests, verification), "
         "not semantic correctness.",

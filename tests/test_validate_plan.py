@@ -42,6 +42,11 @@ def sha256(path):
         return hashlib.sha256(f.read()).hexdigest()
 
 
+def read(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
 def keyed(findings):
     return {(f.rule, f.task) for f in findings}
 
@@ -69,13 +74,13 @@ GOOD_TASK = """
 
 class ValidPlanTests(unittest.TestCase):
     def test_fixture_has_no_errors_or_warnings(self):
-        findings = VP.validate_text(open(VALID, encoding="utf-8").read())
+        findings = VP.validate_text(read(VALID))
         noisy = [f for f in findings if f.severity in ("error", "warning")]
         self.assertEqual(noisy, [], [f.message for f in noisy])
 
     def test_pseudocode_instead_of_complete_code_passes(self):
         # Task 2 of the valid fixture uses a pseudocode block and no real code.
-        text = open(VALID, encoding="utf-8").read()
+        text = read(VALID)
         self.assertIn("**Algorithm:**", text)
         self.assertNotIn("def count_syllables", text)
         self.assertEqual(VP.errors(VP.validate_text(text)), [])
@@ -117,6 +122,52 @@ class MissingInformationTests(unittest.TestCase):
             "- [ ] **Step 3:** Commit.",
         )
         self.assertIn(("verification", 1), keyed(VP.errors(VP.validate_text(task(body)))))
+
+    def test_command_word_in_prose_is_not_a_verification_command(self):
+        # Regression: "`the`, `make` drop it" (sample words) counted as a command.
+        body = GOOD_TASK.replace(
+            "- [ ] **Step 3: Verify** `python3 -m unittest tests.test_app -v` → Expected: PASS",
+            "- [ ] **Step 3:** Note `the`, `make`, `node`, and `go` are sample words.",
+        )
+        self.assertIn(("verification", 1), keyed(VP.errors(VP.validate_text(task(body)))))
+
+    def test_command_word_in_check_sentence_not_a_command(self):
+        # Exact wording from the Phase 2 verification plan.
+        body = GOOD_TASK.replace(
+            "- [ ] **Step 3: Verify** `python3 -m unittest tests.test_app -v` → Expected: PASS",
+            "- [ ] **Step 3:** (`w[-3]` consonant check: `table` keeps trailing e; "
+            "`the`, `make` drop it). Run the tests → Expected: FAIL.",
+        )
+        self.assertIn(("verification", 1), keyed(VP.errors(VP.validate_text(task(body)))))
+
+    def test_bare_command_on_run_line_accepted(self):
+        for line in ("Run `pytest` → Expected: 3 passed",
+                     "Verify: `make` → Expected: exit 0",
+                     "Check with `./check.sh` → Expected: PASS"):
+            with self.subTest(line=line):
+                body = GOOD_TASK.replace(
+                    "**Step 3: Verify** `python3 -m unittest tests.test_app -v` → Expected: PASS",
+                    "**Step 3:** " + line)
+                self.assertNotIn(("verification", 1), keyed(VP.validate_text(task(body))))
+
+    def test_command_with_arguments_accepted_anywhere(self):
+        body = GOOD_TASK.replace(
+            "- [ ] **Step 3: Verify** `python3 -m unittest tests.test_app -v` → Expected: PASS",
+            "- [ ] **Step 3:** `make test` → Expected: PASS",
+        )
+        self.assertNotIn(("verification", 1), keyed(VP.validate_text(task(body))))
+
+    def test_bare_script_path_in_files_list_is_not_a_command(self):
+        body = GOOD_TASK.replace("- Test: `tests/test_app.py`", "- Create: `scripts/check.sh`").replace(
+            "- [ ] **Step 3: Verify** `python3 -m unittest tests.test_app -v` → Expected: PASS",
+            "- [ ] **Step 3:** Done.")
+        self.assertIn(("verification", 1), keyed(VP.errors(VP.validate_text(task(body)))))
+
+    def test_bare_command_alone_in_shell_block_accepted(self):
+        body = GOOD_TASK.replace(
+            "- [ ] **Step 3: Verify** `python3 -m unittest tests.test_app -v` → Expected: PASS",
+            "- [ ] **Step 3:** Expected: PASS\n\n    ```bash\n    make\n    ```")
+        self.assertNotIn(("verification", 1), keyed(VP.validate_text(task(body))))
 
     def test_command_without_expected_result_is_warning(self):
         body = GOOD_TASK.replace(" → Expected: PASS", "")
@@ -219,7 +270,7 @@ class PlaceholderTests(unittest.TestCase):
 
 class MultiTaskLocationTests(unittest.TestCase):
     def setUp(self):
-        self.findings = VP.validate_text(open(INCOMPLETE, encoding="utf-8").read())
+        self.findings = VP.validate_text(read(INCOMPLETE))
         self.by_key = {(f.rule, f.task): f for f in self.findings}
 
     def test_expected_findings_and_lines(self):
@@ -265,6 +316,13 @@ class CliTests(unittest.TestCase):
         result = run_cli(VALID)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("0 errors", result.stdout)
+
+    def test_summary_pluralization(self):
+        one = [VP.Finding("tests", "error", 3, 1, "m", "s")]
+        self.assertEqual(VP.format_summary(one), "1 error, 0 warnings, 0 info")
+        self.assertEqual(VP.format_summary(one, include_info=False), "1 error, 0 warnings")
+        two = one + [VP.Finding("pattern", "warning", 3, 1, "m", "s")] * 2
+        self.assertEqual(VP.format_summary(two + one), "2 errors, 2 warnings, 0 info")
 
     def test_incomplete_plan_exits_1_with_locations(self):
         result = run_cli(INCOMPLETE)
