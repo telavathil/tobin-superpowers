@@ -1,7 +1,7 @@
 {
   "name": "tobin-superpowers",
-  "description": "Personal fork of superpowers adding HTML companions to brainstorming, writing-plans, requesting-code-review, and subagent-driven-development",
-  "version": "0.1.0",
+  "description": "Extension for the official superpowers plugin: auto-loads hybrid planning preferences, gives advisory validation of implementation plans, and offers optional shareable HTML companions for specs, plans, code reviews, and run summaries. Requires superpowers; does not replace its skills.",
+  "version": "1.0.1",
   "author": {
     "name": "Tobin Elavathil",
     "email": "tobin.elavathil@gmail.com"
@@ -10,7 +10,9 @@
   "keywords": [
     "skills",
     "superpowers",
-    "html-companion",
-    "fork"
+    "extension",
+    "planning",
+    "hooks",
+    "html-companion"
   ]
 }

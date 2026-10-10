@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Code Review: Demo Feature</title>
+  <style>
+    :root { --fg: #1f2328; --surface: #f6f8fa; --success-bg: #dafbe1; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--fg); }
+    .pill { border-radius: 999px; } .checklist { list-style: none; } .toc { background: var(--surface); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="companion-header">
+      <h1>Code Review: Demo Feature</h1>
+      <div class="meta">Companion to the code review report · 2026-01-01</div>
+    </header>
+    <p><span class="pill warning">1 important</span> <span class="pill success">1 strength</span></p>
+    <nav class="toc"><ul><li><a href="#f1">F1: missing type hint</a></li></ul></nav>
+    <h2 id="f1">F1: missing type hint</h2>
+    <p><span class="pill warning">important</span> <code>src/app.py:3</code> Add <code>-&gt; str</code>.</p>
+    <div class="callout warning">Assessment: Ready with fixes.</div>
+    <footer class="companion-footer">
+      Source: <code>tests/fixtures/companions/reviews/2026-01-01-demo-review.md</code>
+    </footer>
+  </div>
+</body>
+</html>
