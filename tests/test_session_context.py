@@ -195,7 +195,7 @@ class WiringTests(unittest.TestCase):
             entry = json.load(f)["plugins"][0]
         self.assertEqual(entry["name"], plugin["name"])
         self.assertEqual(entry["version"], plugin["version"])
-        self.assertEqual(plugin["version"], "0.2.0")
+        self.assertEqual(plugin["version"], "0.3.0")
 
     def test_brainstorming_hands_off_to_upstream_writing_plans(self):
         with open(BRAINSTORMING_MD, encoding="utf-8") as f:

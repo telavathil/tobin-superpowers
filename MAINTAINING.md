@@ -170,6 +170,29 @@ changes quickly. They are not a guarantee that the merge is semantically
 correct. You still have to read what upstream did and decide whether
 your customization still fits.
 
+## Plugin-Owned Hooks and Scripts
+
+`hooks/`, `scripts/`, `skills/hybrid-planning/`, and `tests/` are fully owned
+by this repository — upstream merges never touch them, and they are not
+fenced. After any change to them, or after an upstream merge:
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 scripts/validate-plan.py tests/fixtures/valid-plan.md       # exit 0
+python3 scripts/validate-plan.py tests/fixtures/incomplete-plan.md  # exit 1
+```
+
+When upstream `writing-plans` changes its plan format, re-check the
+validator against a freshly generated plan and against upstream's own
+`docs/superpowers/plans/*.md`. Those older plans predate the hybrid
+contract, so `interfaces` and `pattern` findings there are expected;
+anything flagged as a `placeholder` or a `files` error on a task that
+clearly lists files is a validator bug — fix the heuristic and add a test.
+
+Keep validation advisory: the PostToolUse hook must exit 0 for plan
+findings, must never write to the plan, and must stay silent for
+non-plan files.
+
 ## What About the Shared HTML Companion Guide?
 
 `skills/shared/html-companion-guide.md` is fully owned by this fork —

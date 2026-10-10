@@ -8,8 +8,8 @@
   "plugins": [
     {
       "name": "tobin-superpowers",
-      "description": "Extension for superpowers (transitioning from a fork to an independent plugin): auto-loads hybrid planning preferences and adds HTML companions to brainstorming, writing-plans, requesting-code-review, and subagent-driven-development",
-      "version": "0.2.0",
+      "description": "Extension for superpowers (transitioning from a fork to an independent plugin): auto-loads hybrid planning preferences, gives advisory validation of implementation plans, and adds HTML companions to brainstorming, writing-plans, requesting-code-review, and subagent-driven-development",
+      "version": "0.3.0",
       "source": "./",
       "author": {
         "name": "Tobin Elavathil",

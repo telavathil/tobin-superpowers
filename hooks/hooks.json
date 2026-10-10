@@ -1,5 +1,5 @@
 {
-  "description": "Load tobin-superpowers hybrid planning preferences at session start",
+  "description": "tobin-superpowers: load hybrid planning preferences at session start; advisory validation of implementation plans after Write/Edit",
   "hooks": {
     "SessionStart": [
       {
@@ -8,7 +8,24 @@
           {
             "type": "command",
             "command": "python3",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/session-context.py"],
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/session-context.py"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/validate-plan-hook.py"
+            ],
             "timeout": 10
           }
         ]
