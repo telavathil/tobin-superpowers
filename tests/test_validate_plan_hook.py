@@ -177,6 +177,26 @@ class FeedbackTests(HookTestCase):
         self.assertIn("[placeholder]", json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"])
 
 
+class BytecodeTests(HookTestCase):
+    def test_hook_leaves_no_bytecode_cache_in_plugin(self):
+        # The hook imports validate-plan.py from the installed plugin; that must
+        # not write __pycache__ into the plugin directory (1.0.1).
+        scripts = os.path.join(self.tmp, "plugin", "scripts")
+        shutil.copytree(os.path.join(REPO_ROOT, "scripts"), scripts,
+                        ignore=shutil.ignore_patterns("__pycache__"))
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("CLAUDE_PROJECT_DIR", "PYTHONDONTWRITEBYTECODE", "PYTHONPYCACHEPREFIX")}
+        result = subprocess.run(
+            [sys.executable, os.path.join(scripts, "validate-plan-hook.py")],
+            input=json.dumps(self.payload(self.incomplete)),
+            capture_output=True, text=True, timeout=10, env=env,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("[placeholder]", result.stdout)
+        self.assertFalse(os.path.exists(os.path.join(scripts, "__pycache__")),
+                         os.listdir(scripts))
+
+
 class PathMatchingTests(HookTestCase):
     def test_relative_path_resolved_against_cwd(self):
         rel = os.path.join(PLAN_DIR, "2026-01-01-incomplete.md")

@@ -166,6 +166,18 @@ class HtmlCompanionContextTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, self.block)
 
+    def test_review_deferral_and_run_completion_timing(self):
+        # 1.0.1: integration runs missed these two handoffs (offer skipped after
+        # review findings were deferred; run summaries never reach the
+        # branch-finishing step in superpowers 7.0.0).
+        for phrase in (
+            "code review report once its findings are fixed or the user defers them",
+            "subagent run summary when you report the run complete",
+            "even if the branch-finishing step is skipped",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, self.block)
+
     def test_restate_note_still_last(self):
         context = load_module().build_context("resume")
         self.assertTrue(context.endswith("(Restated after resume; these preferences still apply.)"))
@@ -228,7 +240,7 @@ class WiringTests(unittest.TestCase):
             entry = json.load(f)["plugins"][0]
         self.assertEqual(entry["name"], plugin["name"])
         self.assertEqual(entry["version"], plugin["version"])
-        self.assertEqual(plugin["version"], "1.0.0")
+        self.assertEqual(plugin["version"], "1.0.1")
 
 
     def test_skill_frontmatter(self):

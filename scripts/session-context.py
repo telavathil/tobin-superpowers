@@ -25,7 +25,7 @@ When writing or revising implementation plans (superpowers:writing-plans), apply
 
 HTML_COMPANION = """\
 <tobin-superpowers-html-companion>
-When a superpowers artifact is final, offer an HTML companion once per artifact, as its own short message: "Would you like an HTML companion for this <artifact> to share with your team? (yes/no)". Final means: design spec after the user approves it; implementation plan after its self-review, before execution handoff; code review report after fixes; subagent run summary after the final review. Never generate HTML unless the user says yes; on yes, use tobin-superpowers:html-companion. Skip the offer if it was already asked for that artifact.
+When a superpowers artifact is final, offer an HTML companion once per artifact, as its own short message: "Would you like an HTML companion for this <artifact> to share with your team? (yes/no)". Final means: design spec after the user approves it; implementation plan after its self-review, before execution handoff; code review report once its findings are fixed or the user defers them; subagent run summary when you report the run complete after the final review, even if the branch-finishing step is skipped. Never generate HTML unless the user says yes; on yes, use tobin-superpowers:html-companion. Skip the offer if it was already asked for that artifact.
 </tobin-superpowers-html-companion>"""
 
 RESTATE_NOTE = "(Restated after {source}; these preferences still apply.)"

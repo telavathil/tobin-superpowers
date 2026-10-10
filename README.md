@@ -66,7 +66,7 @@ Then restart Claude Code.
 ### Verifying
 
 - `/plugin` lists `superpowers` and `tobin-superpowers` with the versions
-  you expect (this plugin: `1.0.0`). From a shell: `claude plugin list` and
+  you expect (this plugin: `1.0.1`). From a shell: `claude plugin list` and
   `claude plugin details tobin-superpowers@tobin-superpowers-dev`.
 - `tobin-superpowers` shows exactly two skills (`hybrid-planning`,
   `html-companion`) and two hooks (`SessionStart`, `PostToolUse`). All
@@ -199,10 +199,10 @@ small sample, not a guarantee:
 
 | Workflow | Offer |
 | --- | --- |
-| Brainstorming (spec written) | at the right handoff, as its own message (1/1) |
-| Writing plans | at the right handoff (4/4), usually bundled with the execution-handoff question (3/4) |
-| Code review | 1/3 runs; skipped after findings were deferred |
-| Subagent-driven development | not in the standard form (0/2); once asked late in other wording |
+| Brainstorming (spec written) | at the right handoff, as its own message (2/2) |
+| Writing plans | at the right handoff (5/5), usually bundled with the execution-handoff question (4/5) |
+| Code review | 1.0.1: right after the user defers the findings, own message (2/2); not while findings are open. 1.0.0 wording: 1/4 |
+| Subagent-driven development | 1.0.1: in the run-completion message (2/2). 1.0.0 wording: 1/3 |
 | After "yes" (all four types) | companion written, validator 0 errors, markdown unchanged, HTML untracked |
 | After "no" | no HTML; workflow continued |
 
@@ -238,7 +238,7 @@ match the plan validator.
 ```
 tobin-superpowers/
 ├── .claude-plugin/
-│   ├── plugin.json                # plugin manifest (1.0.0)
+│   ├── plugin.json                # plugin manifest (1.0.1)
 │   └── marketplace.json           # tobin-superpowers-dev marketplace
 ├── hooks/
 │   └── hooks.json                 # SessionStart + PostToolUse (Write|Edit)

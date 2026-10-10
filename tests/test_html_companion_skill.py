@@ -121,6 +121,16 @@ class OfferAndConsentTests(unittest.TestCase):
             with self.subTest(timing=timing):
                 self.assertIn(timing, table)
 
+    def test_deferral_and_run_completion_handoffs(self):
+        table = self.text.split("## When to Offer", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("the user deferring them counts", table)
+        self.assertIn("when you report the run complete, even if the branch-finishing step is skipped", table)
+        review = skill_section("Code Review Report").split("### The Offer", 1)[0]
+        self.assertIn("If the user defers the findings, offer right after acknowledging the deferral.", review)
+        run = skill_section("Run Summary").split("### The Offer", 1)[0]
+        self.assertIn("If the workflow reports the run complete without invoking "
+                      "`superpowers:finishing-a-development-branch`, offer in that same message.", run)
+
     def test_consent_rules(self):
         for phrase in (
             "Ask once per artifact",

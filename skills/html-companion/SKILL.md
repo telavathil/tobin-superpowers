@@ -22,8 +22,8 @@ steps of a run:
 | --- | --- | --- |
 | design spec (`brainstorming`) | after the user approves the written spec, before handing off to writing-plans | Companion: Design Spec |
 | implementation plan (`writing-plans`) | after the plan's self-review is clean, before the execution handoff | Companion: Implementation Plan |
-| code review report (`requesting-code-review`) | after the review is in and Critical/Important issues are fixed or deferred | Companion: Code Review Report |
-| run summary (`subagent-driven-development`) | once, after the final review approves, before finishing the branch | Companion: Run Summary |
+| code review report (`requesting-code-review`) | after the review is in and Critical/Important issues are fixed or deferred (the user deferring them counts) | Companion: Code Review Report |
+| run summary (`subagent-driven-development`) | once, after the final review approves, when you report the run complete, even if the branch-finishing step is skipped | Companion: Run Summary |
 
 ## Consent Rules
 
@@ -185,6 +185,8 @@ Run this after the reviewer subagent has returned its report and after any
 Critical or Important issues have been addressed (or explicitly deferred).
 The report is stable at that point and worth sharing.
 
+If the user defers the findings, offer right after acknowledging the deferral.
+
 ### The Offer
 
 Ask exactly once, as its own message:
@@ -254,6 +256,8 @@ point and the summary will not change.
 
 This step does not run between individual tasks — only once, after all
 tasks have completed and the final review is clean.
+
+If the workflow reports the run complete without invoking `superpowers:finishing-a-development-branch`, offer in that same message.
 
 ### The Offer
 

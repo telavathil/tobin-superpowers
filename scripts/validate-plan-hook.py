@@ -23,6 +23,8 @@ REPORTED = ("error", "warning")
 
 
 def load_validator():
+    # Importing would otherwise write __pycache__ into the installed plugin.
+    sys.dont_write_bytecode = True
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "validate-plan.py")
     spec = importlib.util.spec_from_file_location("tobin_validate_plan", path)
     module = importlib.util.module_from_spec(spec)
