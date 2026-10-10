@@ -1,224 +1,144 @@
-# Maintaining the Fork
+# Maintaining tobin-superpowers
 
-How to merge updates from upstream [obra/superpowers](https://github.com/obra/superpowers)
-into this fork.
+tobin-superpowers is an independent extension. It owns only its own files —
+`hooks/`, `scripts/`, `skills/hybrid-planning/`, `skills/html-companion/`,
+`skills/shared/`, and `tests/`. Official superpowers is installed and updated
+separately; nothing here is copied from it or merged with it.
 
-## Mental Model
+## Updating This Plugin
 
-Every modification to a forked skill sits inside markers:
+1. Make the change with tests first, then run the full suite:
 
-```
-<!-- tobin-superpowers:html-companion:start -->
-...your changes...
-<!-- tobin-superpowers:html-companion:end -->
-```
+   ```bash
+   python3 -m unittest discover -s tests -v
+   ```
 
-**Outside the fences:** upstream owns the content. Anything that changes
-there in a new upstream release should be applied verbatim to your fork.
+2. Bump the version in **both** `.claude-plugin/plugin.json` and
+   `.claude-plugin/marketplace.json` (the plugin entry). Claude Code caches
+   plugins by version, so an unchanged version may not reach existing
+   installs. `tests/test_independent_extension.py` checks the two agree and
+   pins the current version — update that expectation in the same change.
+3. Push, then on each machine:
 
-**Inside the fences:** you own the content. Upstream doesn't know it
-exists. Touch this only when *you* decide to change how the HTML companion
-behaves.
+   ```
+   /plugin marketplace update tobin-superpowers-dev
+   /plugin update
+   ```
 
-Sibling prompt files (`visual-companion.md`, `code-reviewer.md`,
-`implementer-prompt.md`, etc.) live entirely outside the fenced model —
-they are byte-identical copies of upstream and get straight `cp`'d on
-merge.
+   Restart Claude Code and confirm the version in `/plugin`.
 
-## The Workflow
+## Testing Compatibility With a New superpowers Release
 
-### 1. See what changed upstream
-
-Claude Code caches every version of every installed plugin. Diff your
-fork's base version against the newest cached version:
-
-```bash
-# What versions of superpowers does Claude Code have?
-ls ~/.claude/plugins/cache/claude-plugins-official/superpowers/
-
-# Pick the version your fork was last synced against (FROM_VER) and the
-# new one you want to merge in (TO_VER).
-FROM_VER=5.1.0
-TO_VER=5.2.0
-UP_BASE=~/.claude/plugins/cache/claude-plugins-official/superpowers
-
-for skill in brainstorming writing-plans requesting-code-review subagent-driven-development; do
-  echo "=== $skill ==="
-  diff -u "$UP_BASE/$FROM_VER/skills/$skill/SKILL.md" \
-          "$UP_BASE/$TO_VER/skills/$skill/SKILL.md"
-done
-```
-
-If a skill shows no diff, skip it. Also check sibling prompt files for
-each of the four skills — they may have changed even if `SKILL.md` did not.
-
-### 2. Merge the changes
-
-Three cases, easiest first:
-
-- **Only a sibling prompt file changed** (e.g. `code-reviewer.md`):
-  straight copy from new upstream into your fork. No fences to worry
-  about.
-
-- **`SKILL.md` changed outside the fenced region:** open old upstream,
-  new upstream, and your fork side by side. Apply the upstream changes to
-  your fork's `SKILL.md`. Leave the fenced block untouched.
-
-- **`SKILL.md` changed inside or directly adjacent to the fenced region:**
-  this is the manual case. Read the upstream diff, decide whether your
-  fenced content still makes sense. Example: if upstream renames the
-  "Self-Review" section to "Plan Review", your fenced text saying *"Run
-  this after the Self-Review loop is clean"* needs an update too.
-
-### 3. Watch for the brainstorming checklist renumber
-
-`brainstorming/SKILL.md` is the one skill where the fork has an
-unavoidable non-fenced edit: the original item `9. Transition to
-implementation` is renumbered to `10.` because the fenced item 9
-("Offer HTML companion") sits between 8 and the original 9.
-
-If upstream adds or removes checklist items, your numbering will drift.
-After every merge, eyeball the checklist and confirm:
-
-- All items are sequentially numbered
-- The fenced HTML companion item sits between the user-review-gate item
-  and the transition-to-implementation item
-- The transition-to-implementation item is the last one (renumbered if
-  needed)
-
-### 4. Bump the fork's version
-
-Edit `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` —
-bump the fork's own version (`0.1.0` → `0.2.0`). The fork versions
-independently from upstream. Don't try to mirror upstream's version.
-
-### 5. Verify the diff is still minimal
-
-Strip the fenced blocks out of each forked `SKILL.md` and confirm the
-result is identical to new upstream (modulo whitespace and the known
-brainstorming renumber):
+superpowers updates on its own schedule and should never require a change
+here. When a new release lands, confirm that in an isolated Claude Code
+configuration, so your real setup is untouched:
 
 ```bash
-TO_VER=5.2.0
-UP_NEW=~/.claude/plugins/cache/claude-plugins-official/superpowers/$TO_VER
-FORK=~/dev/tobin-superpowers
-
-for skill in brainstorming writing-plans requesting-code-review subagent-driven-development; do
-  echo "=== $skill ==="
-  awk '/<!-- tobin-superpowers:html-companion:start -->/{skip=1} !skip; /<!-- tobin-superpowers:html-companion:end -->/{skip=0}' \
-    "$FORK/skills/$skill/SKILL.md" > /tmp/stripped-$skill.md
-  diff -u "$UP_NEW/skills/$skill/SKILL.md" /tmp/stripped-$skill.md
-done
-
-echo "=== Sibling file integrity ==="
-for f in brainstorming/visual-companion.md \
-         brainstorming/spec-document-reviewer-prompt.md \
-         writing-plans/plan-document-reviewer-prompt.md \
-         requesting-code-review/code-reviewer.md \
-         subagent-driven-development/implementer-prompt.md \
-         subagent-driven-development/spec-reviewer-prompt.md \
-         subagent-driven-development/code-quality-reviewer-prompt.md; do
-  diff -q "$UP_NEW/skills/$f" "$FORK/skills/$f" && echo "OK: $f"
-done
+export CLAUDE_CONFIG_DIR="$(mktemp -d)"
+claude plugin marketplace add obra/superpowers
+claude plugin marketplace add /path/to/tobin-superpowers      # or telavathil/tobin-superpowers
+claude plugin install superpowers@superpowers-dev
+claude plugin install tobin-superpowers@tobin-superpowers-dev
+claude plugin list
+claude plugin details superpowers@superpowers-dev
+claude plugin details tobin-superpowers@tobin-superpowers-dev
 ```
 
-Each skill should come back with either zero diff or only:
+Then check, in a scratch git repository:
 
-- Whitespace differences
-- The known `9. → 10.` renumber in `brainstorming`
-- In `brainstorming`, three hand-off references qualified as
-  `superpowers:writing-plans` (checklist item 10, "The terminal state is
-  invoking…", and "Invoke the … skill to create a detailed implementation
-  plan"), so the hand-off goes to upstream rather than this fork's copy
+1. **Skill resolution.** `superpowers:brainstorming`, `superpowers:writing-plans`,
+   `superpowers:requesting-code-review`, and
+   `superpowers:subagent-driven-development` still exist (the workflow names
+   this plugin's instructions refer to), and `tobin-superpowers` lists only
+   `hybrid-planning` and `html-companion`.
+2. **SessionStart.** Run
+   `claude -p "Reply ok" --output-format stream-json --verbose --include-hook-events`
+   and confirm the `SessionStart` hook response contains
+   `<tobin-superpowers-planning-preferences>` and
+   `<tobin-superpowers-html-companion>`.
+3. **Plan format.** Run `superpowers:writing-plans` on a small spec. The plan
+   should land in `docs/superpowers/plans/`, follow the hybrid contract, and
+   pass `python3 scripts/validate-plan.py <plan>`. If upstream changed the
+   plan format, also run the validator over upstream's own
+   `docs/superpowers/plans/*.md`: `interfaces` and `pattern` findings there
+   are expected (those plans predate the hybrid contract), but a
+   `placeholder` error or a `files` error on a task that clearly lists files
+   is a validator bug — fix the heuristic and add a regression test.
+4. **Plan validation hook.** Write a deliberately incomplete plan (for
+   example `tests/fixtures/incomplete-plan.md`) into `docs/superpowers/plans/`
+   with the `Write` tool and confirm the feedback arrives.
+5. **HTML companions.** For each of the four workflows, note whether the
+   offer appears at the handoff, once, without derailing the workflow; answer
+   "yes" once and run `python3 scripts/validate-html-companion.py <html>
+   --source <md>`, confirm the markdown is unchanged and the HTML untracked.
+   Offers are best-effort — record the results in the README's "Observed
+   offer behaviour" table rather than treating a miss as a release blocker.
+6. **Artifact paths.** If upstream moves specs or plans out of
+   `docs/superpowers/specs/` and `docs/superpowers/plans/`, update the hook's
+   `PLAN_DIR_PARTS`, the `html-companion` skill, and the README together.
 
-Anything else means an upstream change leaked into a place it shouldn't
-have. Back out and retry.
+## Claude Code Requirements
 
-### 6. Commit, push, reload
+The plugin relies on these documented hook and skill behaviours; re-check
+them against the [hooks reference](https://code.claude.com/docs/en/hooks)
+when Claude Code changes:
 
-```bash
-cd ~/dev/tobin-superpowers
-git add -A
-git commit -m "chore: merge superpowers $TO_VER upstream"
-git push
-```
+- **SessionStart** command hook whose stdout JSON
+  `hookSpecificOutput.additionalContext` is added to Claude's context. The
+  matcher `startup|resume|clear|compact|fork` uses exact-name matching; the
+  `fork` source needs Claude Code v2.1.214+ (older versions report forks as
+  `resume`, which is also matched). Output must stay under the 10,000
+  character context cap (tests enforce 2,000).
+- **PostToolUse** command hook with matcher `Write|Edit` (exact names), input
+  `tool_input.file_path` and `cwd`, and feedback via
+  `hookSpecificOutput.additionalContext` plus `systemMessage`. It is
+  advisory: the write has already happened. It must exit 0 for plan
+  findings, never write to the plan, and stay silent for other files.
+- **Exec-form commands** (`"command": "python3"` with `args`) and
+  `${CLAUDE_PLUGIN_ROOT}` for portable paths; `python3` must be on `PATH`.
+- **Skills:** `${CLAUDE_PLUGIN_ROOT}` is substituted in plugin skill content.
+  Keep each skill self-contained in its `SKILL.md` and without
+  `allowed-tools` — supporting files need a read permission and
+  `allowed-tools` needs a load permission, both denied in headless runs.
 
-Then in Claude Code:
+## Synchronizing the Embedded HTML Guide
 
-```
-/plugin marketplace update tobin-superpowers-dev
-/reload-plugins
-```
+`skills/shared/html-companion-guide.md` is the source of truth for HTML
+output rules. `skills/html-companion/SKILL.md` embeds a verbatim copy in its
+"Shared Output Guide" section (everything after the guide's `# H1`).
 
-## When *Not* to Merge
+1. Edit `skills/shared/html-companion-guide.md`.
+2. Replace the body of the skill's "Shared Output Guide" section with the
+   guide's text after its first line.
+3. Run `python3 -m unittest tests.test_html_companion_skill -v`;
+   `test_embeds_shared_guide_verbatim` fails until the copies match.
+4. If the change affects what can be checked mechanically, update
+   `scripts/validate-html-companion.py` and its tests.
 
-If upstream restructures one of the four skills heavily — splits the
-skill in two, removes a section your fenced block depends on, rewrites
-the checklist — your fenced block may no longer fit cleanly into the
-new flow.
+The per-artifact "Companion: …" sections (offer question, timing, rendering
+priorities) are pinned by `tests/test_html_companion_skill.py`; change the
+test expectations deliberately when you change them.
 
-In that case, treat it as a redesign rather than a merge:
+## Test Commands
 
-1. Re-read the original spec at
-   `~/dev/html-companion-plugin-spec.md`
-2. Pick a fresh insertion point in the new upstream `SKILL.md`
-3. Rewrite the fenced block to fit
-4. Re-verify with step 5 above
-
-The fenced markers are a *bookkeeping* tool — they let you find your
-changes quickly. They are not a guarantee that the merge is semantically
-correct. You still have to read what upstream did and decide whether
-your customization still fits.
-
-## Plugin-Owned Hooks and Scripts
-
-`hooks/`, `scripts/`, `skills/hybrid-planning/`, and `tests/` are fully owned
-by this repository — upstream merges never touch them, and they are not
-fenced. After any change to them, or after an upstream merge:
+Regression (no network, standard library only):
 
 ```bash
 python3 -m unittest discover -s tests -v
-python3 scripts/validate-plan.py tests/fixtures/valid-plan.md       # exit 0
-python3 scripts/validate-plan.py tests/fixtures/incomplete-plan.md  # exit 1
+python3 scripts/validate-plan.py tests/fixtures/valid-plan.md             # exit 0
+python3 scripts/validate-plan.py tests/fixtures/incomplete-plan.md        # exit 1
+python3 scripts/validate-html-companion.py tests/fixtures/companions/plans/2026-01-01-demo.html   # exit 0
+python3 scripts/validate-html-companion.py tests/fixtures/companions/plans/external-assets.html   # exit 1
+echo '{"source":"startup"}' | python3 scripts/session-context.py
 ```
 
-When upstream `writing-plans` changes its plan format, re-check the
-validator against a freshly generated plan and against upstream's own
-`docs/superpowers/plans/*.md`. Those older plans predate the hybrid
-contract, so `interfaces` and `pattern` findings there are expected;
-anything flagged as a `placeholder` or a `files` error on a task that
-clearly lists files is a validator bug — fix the heuristic and add a test.
+`tests/test_independent_extension.py` guards the architecture: no upstream
+skill directories or shadowing skill names, no references to removed
+paths, only existing `tobin-superpowers:` and `superpowers:` skill names,
+matching manifests, resolvable hook paths, and standard-library-only
+scripts.
 
-`skills/html-companion/SKILL.md` is also plugin-owned. Its "Companion: …"
-sections were migrated from the fenced HTML companion blocks in Phase 3, and
-its "Shared Output Guide" is a verbatim copy of
-`skills/shared/html-companion-guide.md`. `tests/test_html_companion_skill.py`
-checks that every rendering-priority bullet and offer question in the forks
-still appears in the skill, and that the guide copy matches the guide file.
-
-- Changing the guide: edit `skills/shared/html-companion-guide.md`, then
-  paste the same text into the skill's "Shared Output Guide" section.
-- Changing a fork's fenced block before Phase 4: make the same change in the
-  matching "Companion: …" section — the test pins the fenced blocks' hashes
-  so the drift is caught. (Upstream merges outside the fences do not affect
-  those hashes.)
-- Keep everything the skill needs inside `SKILL.md`; separate supporting
-  files are unreadable in headless runs.
-
-```bash
-python3 scripts/validate-html-companion.py tests/fixtures/companions/plans/2026-01-01-demo.html  # exit 0
-```
-
-Keep validation advisory: the PostToolUse hook must exit 0 for plan
-findings, must never write to the plan, and must stay silent for
-non-plan files.
-
-## What About the Shared HTML Companion Guide?
-
-`skills/shared/html-companion-guide.md` is fully owned by this fork —
-upstream doesn't know it exists. You only edit it when *you* want to
-change how the HTML output works (e.g. swap the color palette, add a new
-component pattern, tighten the style rules).
-
-When you edit it, every skill that references it will pick up the change
-on next `/reload-plugins`. No coordination with upstream needed.
+Integration (live Claude Code, isolated configuration as above): steps 1–5
+of the compatibility checklist. Headless runs (`claude -p … --continue`)
+work for all four workflows; they deny reads of plugin files and
+unapproved commands, which the skills already tolerate.

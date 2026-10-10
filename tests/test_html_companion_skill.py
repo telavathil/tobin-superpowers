@@ -1,41 +1,55 @@
-"""Contract tests for skills/html-companion and the forked skills it replaces.
+"""Contract tests for the standalone skills/html-companion skill.
+
+The skill is self-contained: everything Claude needs is in SKILL.md, because
+the Skill tool delivers a skill's own text without a Read permission while
+other plugin files are unreadable in headless runs (seen in Phase 3
+integration testing).
 
 Run: python3 -m unittest discover -s tests -v
 """
 
-import hashlib
 import os
 import re
 import unittest
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SKILL_DIR = os.path.join(REPO_ROOT, "skills", "html-companion")
+SKILLS_DIR = os.path.join(REPO_ROOT, "skills")
+SKILL_DIR = os.path.join(SKILLS_DIR, "html-companion")
 SKILL_MD = os.path.join(SKILL_DIR, "SKILL.md")
-GUIDE = os.path.join(REPO_ROOT, "skills", "shared", "html-companion-guide.md")
-FENCE_RE = re.compile(
-    r"<!-- tobin-superpowers:html-companion:start -->.*?<!-- tobin-superpowers:html-companion:end -->",
-    re.S)
+GUIDE = os.path.join(SKILLS_DIR, "shared", "html-companion-guide.md")
 
-# Forked skill -> SKILL.md section holding its migrated rendering priorities.
-# Everything lives in SKILL.md: the Skill tool delivers it without a Read
-# permission, while separate plugin files are unreadable in headless runs
-# (seen in the Phase 3 integration test).
+# Official superpowers workflow -> (section title, exact offer question,
+# rendering-priority bullet leads). The questions and leads were migrated from
+# the former copied skills in Phase 3 and are pinned here so they cannot be
+# lost or silently reworded.
 ARTIFACTS = {
-    "brainstorming": "Design Spec",
-    "writing-plans": "Implementation Plan",
-    "requesting-code-review": "Code Review Report",
-    "subagent-driven-development": "Run Summary",
+    "superpowers:brainstorming": (
+        "Design Spec",
+        "Would you like an HTML companion for this design spec to share with your team? (yes/no)",
+        ["Decisions summary at the top.", "Section navigation.",
+         "Approach comparison (if the spec contains multiple approaches).",
+         "Open questions, callouts.", "Body sections", "Footer."],
+    ),
+    "superpowers:writing-plans": (
+        "Implementation Plan",
+        "Would you like an HTML companion for this implementation plan to share with your team? (yes/no)",
+        ["Plan summary header.", "Phase or subsystem grouping.",
+         "Tasks as a structured checklist.", "Risk and dependency callouts.",
+         "Body content", "Footer."],
+    ),
+    "superpowers:requesting-code-review": (
+        "Code Review Report",
+        "Would you like an HTML companion for this code review report to share with your team? (yes/no)",
+        ["Summary bar at the top.", "Jump links.", "Findings as severity-coded rows.",
+         "Annotated diff (if available).", "Assessment at the bottom.", "Footer."],
+    ),
+    "superpowers:subagent-driven-development": (
+        "Run Summary",
+        "Would you like an HTML companion for this subagent run summary to share as an async team update? (yes/no)",
+        ["Status summary at the top.", "Concerns and blocked tasks first.",
+         "Source plan reference.", "Full task list.", "Final reviewer assessment.", "Footer."],
+    ),
 }
-
-# SHA-256 of the fork-owned fenced blocks and the shared guide at the start of
-# Phase 3. Phase 3 must not change them; Phase 4 retires the forks deliberately.
-FORK_BLOCK_SHA = {
-    "brainstorming": "84b04d2a86087132feac55e17e6eeb24f86bd102a31b2aa15be2f47ef1041a84",
-    "writing-plans": "8d0705fcbf7fede8c07ff4da641869f6e6e01b5943424fcadcb51f15bf3fbfe9",
-    "requesting-code-review": "b4ff8945b6d11e38ec4f21724b893330b204f59b620c4e96c80f69726da6f5e2",
-    "subagent-driven-development": "907a7d4d8b2b1c6356bbd4b9c102e8b192bc47706f93799c8417e07fe50a2ca8",
-}
-GUIDE_SHA = "ad87f0144b295ff69ade00319515d00b09b2c3a4722c4df2cab68d6bb887b47d"
 
 
 def read(path):
@@ -43,12 +57,9 @@ def read(path):
         return f.read()
 
 
-def fork_blocks(skill):
-    return FENCE_RE.findall(read(os.path.join(REPO_ROOT, "skills", skill, "SKILL.md")))
-
-
-def fork_block_sha(skill):
-    return hashlib.sha256("\n".join(fork_blocks(skill)).encode("utf-8")).hexdigest()
+def flat(text):
+    """Unwrap blockquote continuation lines and collapse whitespace."""
+    return re.sub(r"\s+", " ", re.sub(r"\n> ?", " ", text))
 
 
 def skill_section(title):
@@ -60,14 +71,7 @@ def skill_section(title):
     return text.split(marker, 1)[1].split("\n## ", 1)[0]
 
 
-def priority_leads(skill):
-    """Bold lead phrases of the fork's 'Rendering Priorities' bullets."""
-    block = fork_blocks(skill)[-1]
-    section = block.split("### Rendering Priorities", 1)[1].split("\n### ", 1)[0]
-    return re.findall(r"^- \*\*(.+?)\*\*", section, re.M)
-
-
-class SkillContractTests(unittest.TestCase):
+class DiscoveryTests(unittest.TestCase):
     def setUp(self):
         self.text = read(SKILL_MD)
         self.frontmatter = self.text.split("---\n")[1]
@@ -75,103 +79,136 @@ class SkillContractTests(unittest.TestCase):
     def test_frontmatter(self):
         self.assertTrue(self.text.startswith("---\n"))
         self.assertIn("name: html-companion\n", self.frontmatter)
-        self.assertRegex(self.frontmatter, r"description: .*HTML companion")
-        # No allowed-tools: a skill that pre-approves tools needs a permission
-        # prompt to load, which is denied in non-interactive runs (seen in the
-        # Phase 3 integration test). The validator runs as a normal Bash call.
+        description = re.search(r"^description: (.+)$", self.frontmatter, re.M).group(1)
+        for phrase in ("HTML companion", "design spec", "implementation plan",
+                       "code review report", "run summary", "only if the user says yes"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, description)
+
+    def test_no_allowed_tools(self):
+        # A skill that pre-approves tools needs a permission prompt to load,
+        # which is denied in non-interactive runs (Phase 3 integration test).
         self.assertNotIn("allowed-tools", self.frontmatter)
 
-    def test_offer_and_consent_rules(self):
-        for phrase in (
-            "Would you like an HTML companion for this",
-            "(yes/no)",
-            "Ask once per artifact",
-            "Only generate after an explicit yes",
-            "If the user says no",
-        ):
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, self.text)
-
-    def test_output_rules(self):
-        for phrase in (
-            "same base name",
-            "Never stage or commit the HTML",
-            "Never modify the source Markdown",
-            "Confirm both paths",
-        ):
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, self.text)
-
-    def test_validator_by_plugin_path_with_fallback(self):
-        self.assertIn("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-html-companion.py", self.text)
-        self.assertIn("--source", self.text)
-        self.assertIn("If the validator cannot run", self.text)
+    def test_skill_is_single_file(self):
+        self.assertEqual(os.listdir(SKILL_DIR), ["SKILL.md"])
 
     def test_does_not_depend_on_reading_other_plugin_files(self):
         self.assertNotIn("references/", self.text)
         self.assertNotIn("Read `${CLAUDE_PLUGIN_ROOT}", self.text)
 
-    def test_embeds_shared_guide_verbatim(self):
-        guide_body = read(GUIDE).split("\n", 1)[1].strip()  # drop the guide's H1
-        self.assertIn(guide_body, self.text)
-
-    def test_all_artifacts_and_triggers_listed(self):
-        for phrase in ("design spec", "implementation plan", "code review report", "run summary",
-                       "docs/superpowers/reviews/", "docs/superpowers/run-summaries/"):
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, self.text)
-
-    def test_section_per_artifact(self):
-        for title in ARTIFACTS.values():
-            with self.subTest(title=title):
-                self.assertTrue(skill_section(title).strip(), title)
-
-    def test_no_supporting_files(self):
-        self.assertEqual(os.listdir(SKILL_DIR), ["SKILL.md"])
-
     def test_skill_size_bounded(self):
-        # Above the docs' ~500-line tip because the shared guide is embedded
-        # (see ARTIFACTS note); it is only loaded after the user says yes.
+        # Above the docs' ~500-line tip because the shared guide is embedded;
+        # it is only loaded after the user says yes.
         self.assertLess(len(self.text.splitlines()), 600)
 
 
-class MigrationTests(unittest.TestCase):
-    def test_every_fork_priority_is_migrated(self):
-        for skill, title in ARTIFACTS.items():
-            leads = priority_leads(skill)
-            self.assertGreaterEqual(len(leads), 5, skill)
-            text = skill_section(title)
+class OfferAndConsentTests(unittest.TestCase):
+    def setUp(self):
+        self.text = read(SKILL_MD)
+
+    def test_timing_table_names_each_official_workflow(self):
+        table = self.text.split("## When to Offer", 1)[1].split("\n## ", 1)[0]
+        for workflow, (title, _, _) in ARTIFACTS.items():
+            short = workflow.split(":", 1)[1]
+            with self.subTest(workflow=workflow):
+                row = next(l for l in table.splitlines() if "`%s`" % short in l)
+                self.assertIn("Companion: %s" % title, row)
+        for timing in ("after the user approves the written spec",
+                       "after the plan's self-review is clean, before the execution handoff",
+                       "Critical/Important issues are fixed or deferred",
+                       "once, after the final review approves"):
+            with self.subTest(timing=timing):
+                self.assertIn(timing, table)
+
+    def test_consent_rules(self):
+        for phrase in (
+            "Ask once per artifact",
+            "as its own short message",
+            "Would you like an HTML companion for this <artifact> to share with your team? (yes/no)",
+            "Only generate after an explicit yes",
+            "Silence, \"maybe\", or a non-interactive",
+            "If the user says no",
+            "do not ask a second time",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, self.text)
+
+    def test_no_fork_terminology(self):
+        self.assertNotRegex(self.text.lower(), r"\bfork(ed)?\b")
+
+
+class ArtifactSectionTests(unittest.TestCase):
+    def test_each_section_has_offer_question_and_priorities(self):
+        for workflow, (title, question, leads) in ARTIFACTS.items():
+            section = skill_section(title)
+            with self.subTest(workflow=workflow):
+                self.assertTrue(section.strip(), title)
+                self.assertIn(question, flat(section))
+                self.assertIn("### When to Offer", section)
+                self.assertIn("### Rendering Priorities for", section)
             for lead in leads:
-                with self.subTest(skill=skill, lead=lead):
-                    self.assertIn("**%s**" % lead, text)
+                with self.subTest(workflow=workflow, lead=lead):
+                    self.assertIn("- **%s**" % lead, section)
 
-    def test_fork_offer_wording_migrated(self):
-        def flat(text):  # unwrap blockquote continuation lines and whitespace
-            return re.sub(r"\s+", " ", re.sub(r"\n> ?", " ", text))
+    def test_each_section_names_its_official_workflow(self):
+        for workflow, (title, _, _) in ARTIFACTS.items():
+            with self.subTest(workflow=workflow):
+                self.assertIn("`%s`" % workflow, skill_section(title))
 
-        for skill, title in ARTIFACTS.items():
-            offer = re.search(r'"(Would you like an HTML companion for this .+?\(yes/no\))"',
-                              flat(fork_blocks(skill)[-1])).group(1)
-            with self.subTest(skill=skill):
-                self.assertIn(offer, flat(skill_section(title)))
-
-    def test_persistence_paths_migrated(self):
+    def test_persistence_paths_for_unsaved_artifacts(self):
         self.assertIn("docs/superpowers/reviews/YYYY-MM-DD-<feature-or-task-slug>-review.md",
                       skill_section("Code Review Report"))
         self.assertIn("docs/superpowers/run-summaries/YYYY-MM-DD-<feature-or-plan-slug>-summary.md",
                       skill_section("Run Summary"))
 
+    def test_source_paths_for_saved_artifacts(self):
+        self.assertIn("docs/superpowers/specs/", skill_section("Design Spec"))
+        self.assertIn("docs/superpowers/plans/", skill_section("Implementation Plan"))
 
-class ForkPreservationTests(unittest.TestCase):
-    def test_fork_blocks_unchanged(self):
-        for skill, expected in FORK_BLOCK_SHA.items():
-            with self.subTest(skill=skill):
-                self.assertTrue(fork_blocks(skill), skill)
-                self.assertEqual(fork_block_sha(skill), expected)
 
-    def test_shared_guide_unchanged(self):
-        with open(GUIDE, "rb") as f:
-            self.assertEqual(hashlib.sha256(f.read()).hexdigest(), GUIDE_SHA)
+class OutputRuleTests(unittest.TestCase):
+    def setUp(self):
+        self.text = read(SKILL_MD)
+        self.on_yes = self.text.split("## On Yes", 1)[1].split("\n## ", 1)[0]
+
+    def test_markdown_preserved_and_html_unstaged(self):
+        for phrase in ("same base name", "same directory",
+                       "Never modify the source Markdown",
+                       "Never stage or commit the HTML", "no `git add`",
+                       "Confirm both paths"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, self.on_yes)
+
+    def test_self_contained_output_required(self):
+        for phrase in ("self-contained", "no CDN", "web fonts", "`data:` URIs"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, self.on_yes)
+
+    def test_validator_by_plugin_path_with_fallback(self):
+        self.assertIn("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-html-companion.py"
+                      " <file>.html --source <file>.md", self.on_yes)
+        self.assertTrue(os.path.isfile(os.path.join(REPO_ROOT, "scripts", "validate-html-companion.py")))
+        self.assertIn("If the validator cannot run", self.on_yes)
+
+
+class SharedGuideTests(unittest.TestCase):
+    def test_embeds_shared_guide_verbatim(self):
+        guide_body = read(GUIDE).split("\n", 1)[1].strip()  # drop the guide's H1
+        self.assertIn(guide_body, read(SKILL_MD))
+
+    def test_guide_points_at_standalone_skill(self):
+        guide = read(GUIDE)
+        self.assertIn("html-companion", guide)
+        self.assertNotRegex(guide.lower(), r"\bfork(ed)?\b")
+        self.assertNotIn("Each skill's `SKILL.md` includes", guide)
+
+    def test_guide_keeps_self_containment_and_palette(self):
+        guide = read(GUIDE)
+        for phrase in ("Self-contained.", "No web fonts", "Never modify the markdown",
+                       "#82071e", "#1a7f37", "<!DOCTYPE html>", "companion-footer"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, guide)
 
 
 if __name__ == "__main__":

@@ -18,7 +18,6 @@ HOOKS_JSON = os.path.join(REPO_ROOT, "hooks", "hooks.json")
 SKILL_MD = os.path.join(REPO_ROOT, "skills", "hybrid-planning", "SKILL.md")
 PLUGIN_JSON = os.path.join(REPO_ROOT, ".claude-plugin", "plugin.json")
 MARKETPLACE_JSON = os.path.join(REPO_ROOT, ".claude-plugin", "marketplace.json")
-BRAINSTORMING_MD = os.path.join(REPO_ROOT, "skills", "brainstorming", "SKILL.md")
 MAX_CONTEXT_CHARS = 2000
 SESSION_SOURCES = ("startup", "resume", "clear", "compact", "fork")
 RESTATE_SOURCES = ("resume", "clear", "compact", "fork")
@@ -229,20 +228,8 @@ class WiringTests(unittest.TestCase):
             entry = json.load(f)["plugins"][0]
         self.assertEqual(entry["name"], plugin["name"])
         self.assertEqual(entry["version"], plugin["version"])
-        self.assertEqual(plugin["version"], "0.4.0")
+        self.assertEqual(plugin["version"], "1.0.0")
 
-    def test_brainstorming_hands_off_to_upstream_writing_plans(self):
-        with open(BRAINSTORMING_MD, encoding="utf-8") as f:
-            text = f.read()
-        for phrase in (
-            "invoke superpowers:writing-plans skill to create implementation plan",
-            "The terminal state is invoking superpowers:writing-plans.",
-            "Invoke the superpowers:writing-plans skill to create",
-        ):
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, text)
-        self.assertEqual(text.count("<!-- tobin-superpowers:html-companion:start -->"), 2)
-        self.assertEqual(text.count("<!-- tobin-superpowers:html-companion:end -->"), 2)
 
     def test_skill_frontmatter(self):
         with open(SKILL_MD, encoding="utf-8") as f:
