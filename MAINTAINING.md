@@ -189,6 +189,26 @@ contract, so `interfaces` and `pattern` findings there are expected;
 anything flagged as a `placeholder` or a `files` error on a task that
 clearly lists files is a validator bug — fix the heuristic and add a test.
 
+`skills/html-companion/SKILL.md` is also plugin-owned. Its "Companion: …"
+sections were migrated from the fenced HTML companion blocks in Phase 3, and
+its "Shared Output Guide" is a verbatim copy of
+`skills/shared/html-companion-guide.md`. `tests/test_html_companion_skill.py`
+checks that every rendering-priority bullet and offer question in the forks
+still appears in the skill, and that the guide copy matches the guide file.
+
+- Changing the guide: edit `skills/shared/html-companion-guide.md`, then
+  paste the same text into the skill's "Shared Output Guide" section.
+- Changing a fork's fenced block before Phase 4: make the same change in the
+  matching "Companion: …" section — the test pins the fenced blocks' hashes
+  so the drift is caught. (Upstream merges outside the fences do not affect
+  those hashes.)
+- Keep everything the skill needs inside `SKILL.md`; separate supporting
+  files are unreadable in headless runs.
+
+```bash
+python3 scripts/validate-html-companion.py tests/fixtures/companions/plans/2026-01-01-demo.html  # exit 0
+```
+
 Keep validation advisory: the PostToolUse hook must exit 0 for plan
 findings, must never write to the plan, and must stay silent for
 non-plan files.

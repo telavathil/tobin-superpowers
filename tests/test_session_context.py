@@ -19,7 +19,7 @@ SKILL_MD = os.path.join(REPO_ROOT, "skills", "hybrid-planning", "SKILL.md")
 PLUGIN_JSON = os.path.join(REPO_ROOT, ".claude-plugin", "plugin.json")
 MARKETPLACE_JSON = os.path.join(REPO_ROOT, ".claude-plugin", "marketplace.json")
 BRAINSTORMING_MD = os.path.join(REPO_ROOT, "skills", "brainstorming", "SKILL.md")
-MAX_CONTEXT_CHARS = 1500
+MAX_CONTEXT_CHARS = 2000
 SESSION_SOURCES = ("startup", "resume", "clear", "compact", "fork")
 RESTATE_SOURCES = ("resume", "clear", "compact", "fork")
 PRECEDENCE = (
@@ -138,6 +138,40 @@ class OutputContentTests(unittest.TestCase):
         self.assertNotIn("validat", self.context.lower())
 
 
+class HtmlCompanionContextTests(unittest.TestCase):
+    def setUp(self):
+        self.context = load_module().build_context("startup")
+        start = self.context.index("<tobin-superpowers-html-companion>")
+        end = self.context.index("</tobin-superpowers-html-companion>")
+        self.block = self.context[start:end]
+
+    def test_planning_block_still_first_and_intact(self):
+        self.assertTrue(self.context.startswith("<tobin-superpowers-planning-preferences>"))
+        self.assertIn(PRECEDENCE, self.context.split("<tobin-superpowers-html-companion>")[0])
+
+    def test_offer_instructions(self):
+        for phrase in (
+            "Would you like an HTML companion for this",
+            "(yes/no)",
+            "tobin-superpowers:html-companion",
+            "once per artifact",
+            "Never generate HTML unless the user says yes",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, self.block)
+
+    def test_all_four_artifacts_and_timing(self):
+        for phrase in ("design spec", "implementation plan", "code review report",
+                       "run summary", "after the user approves", "self-review",
+                       "final review"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, self.block)
+
+    def test_restate_note_still_last(self):
+        context = load_module().build_context("resume")
+        self.assertTrue(context.endswith("(Restated after resume; these preferences still apply.)"))
+
+
 class FailureBehaviorTests(unittest.TestCase):
     def test_internal_error_exits_1_with_one_line_stderr(self):
         module = load_module()
@@ -195,7 +229,7 @@ class WiringTests(unittest.TestCase):
             entry = json.load(f)["plugins"][0]
         self.assertEqual(entry["name"], plugin["name"])
         self.assertEqual(entry["version"], plugin["version"])
-        self.assertEqual(plugin["version"], "0.3.0")
+        self.assertEqual(plugin["version"], "0.4.0")
 
     def test_brainstorming_hands_off_to_upstream_writing_plans(self):
         with open(BRAINSTORMING_MD, encoding="utf-8") as f:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SessionStart hook: inject tobin-superpowers planning preferences.
+"""SessionStart hook: inject tobin-superpowers planning and HTML companion preferences.
 
 Reads the SessionStart hook input (JSON on stdin), prints a
 hookSpecificOutput JSON object with concise additionalContext, and exits 0.
@@ -23,6 +23,11 @@ When writing or revising implementation plans (superpowers:writing-plans), apply
 - Keep upstream Superpowers' workflow otherwise: plan location docs/superpowers/plans/, header, task/checkbox structure, TDD, self-review, execution handoff.
 </tobin-superpowers-planning-preferences>"""
 
+HTML_COMPANION = """\
+<tobin-superpowers-html-companion>
+When a superpowers artifact is final, offer an HTML companion once per artifact, as its own short message: "Would you like an HTML companion for this <artifact> to share with your team? (yes/no)". Final means: design spec after the user approves it; implementation plan after its self-review, before execution handoff; code review report after fixes; subagent run summary after the final review. Never generate HTML unless the user says yes; on yes, use tobin-superpowers:html-companion. Skip the offer if it was already asked for that artifact.
+</tobin-superpowers-html-companion>"""
+
 RESTATE_NOTE = "(Restated after {source}; these preferences still apply.)"
 
 
@@ -39,9 +44,10 @@ def parse_source(raw):
 
 
 def build_context(source):
+    context = PREFERENCES + "\n" + HTML_COMPANION
     if source in RESTATE_SOURCES:
-        return PREFERENCES + "\n" + RESTATE_NOTE.format(source=source)
-    return PREFERENCES
+        return context + "\n" + RESTATE_NOTE.format(source=source)
+    return context
 
 
 def build_output(source):
