@@ -75,7 +75,16 @@ Then check, in a scratch git repository:
    offer behaviour" table rather than treating a miss as a release blocker.
 6. **Artifact paths.** If upstream moves specs or plans out of
    `docs/superpowers/specs/` and `docs/superpowers/plans/`, update the hook's
-   `PLAN_DIR_PARTS`, the `html-companion` skill, and the README together.
+   `PLAN_DIR_PARTS` / `SPEC_DIR_PARTS`, the `html-companion` skill, and the
+   README together.
+7. **Implicit spec approval.** In `superpowers:brainstorming`, answer the
+   spec-review handoff with "write the plan" (no "approved"). The design-spec
+   offer should come first, as its own message, before writing-plans starts.
+8. **Long session.** Reach the plan handoff after many tool calls (or run
+   `/compact` mid-plan). The plan offer should still appear before the
+   execution handoff — the PostToolUse reminder is what carries it there.
+
+Record steps 5, 7 and 8 in the README's "Observed offer behaviour" table.
 
 ## Claude Code Requirements
 
@@ -93,7 +102,9 @@ when Claude Code changes:
   `tool_input.file_path` and `cwd`, and feedback via
   `hookSpecificOutput.additionalContext` plus `systemMessage`. It is
   advisory: the write has already happened. It must exit 0 for plan
-  findings, never write to the plan, and stay silent for other files.
+  findings, never write to the plan or spec, and stay silent for files
+  outside `docs/superpowers/plans/` and `docs/superpowers/specs/` (plans
+  without errors and specs get a one-line offer reminder).
 - **Exec-form commands** (`"command": "python3"` with `args`) and
   `${CLAUDE_PLUGIN_ROOT}` for portable paths; `python3` must be on `PATH`.
 - **Skills:** `${CLAUDE_PLUGIN_ROOT}` is substituted in plugin skill content.
@@ -158,7 +169,7 @@ paths, only existing `tobin-superpowers:` and `superpowers:` skill names,
 matching manifests, resolvable hook paths, and standard-library-only
 scripts.
 
-Integration (live Claude Code, isolated configuration as above): steps 1–5
-of the compatibility checklist. Headless runs (`claude -p … --continue`)
+Integration (live Claude Code, isolated configuration as above): steps 1–5,
+7 and 8 of the compatibility checklist. Headless runs (`claude -p … --continue`)
 work for all four workflows; they deny reads of plugin files and
 unapproved commands, which the skills already tolerate.

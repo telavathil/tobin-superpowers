@@ -345,8 +345,32 @@ def check_pattern(task):
         "or 'Pattern to follow: none (new pattern)'.")]
 
 
+DEPENDENCY_LABEL_RE = re.compile(r"\bdependenc(?:y|ies)\b\**\s*:|\bdepends\s+on\b", re.I)
+CONSUMES_RE = re.compile(r"\bconsumes\b", re.I)
+TASK_REF_RE = re.compile(r"\btask\s+(\d+)\b", re.I)
+
+
+def check_dependencies(task):
+    """Hybrid contract item 7: tasks after the first state what they rely on."""
+    if task.number <= 1:
+        return []
+    for line in task.lines:
+        if line.in_code:
+            continue
+        if DEPENDENCY_LABEL_RE.search(line.text):
+            return []
+        if CONSUMES_RE.search(line.text) and any(
+                int(n) < task.number for n in TASK_REF_RE.findall(line.text)):
+            return []
+    return [Finding(
+        "dependencies", "warning", task.line, task.number,
+        "No dependencies on earlier tasks stated.",
+        "Add '**Dependencies:** Task N (what it provides)', a 'Consumes:' line naming "
+        "the earlier task, or 'Dependencies: none'.")]
+
+
 TASK_CHECKS = (check_files, check_interfaces, check_steps, check_tests,
-               check_verification, check_pattern)
+               check_verification, check_pattern, check_dependencies)
 
 
 # --- Document-wide checks ----------------------------------------------------

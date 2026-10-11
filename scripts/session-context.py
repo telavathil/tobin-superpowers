@@ -14,18 +14,19 @@ RESTATE_SOURCES = {"resume", "clear", "compact", "fork"}
 
 PREFERENCES = """\
 <tobin-superpowers-planning-preferences>
-When writing or revising implementation plans (superpowers:writing-plans), apply the tobin-superpowers:hybrid-planning contract. Read that skill for full detail; this summary is authoritative if you do not.
-- Lean and token-efficient: tables/bullets, state each fact once, no spec restatement.
+When writing or revising implementation plans (superpowers:writing-plans), apply the tobin-superpowers:hybrid-planning contract; read that skill when this summary leaves a question open.
+- Lean and token-efficient: state each fact once, no spec restatement.
 - Every task independently executable by a human without AI assistance.
-- Each task lists: exact file paths (Create/Modify/Test), interfaces/signatures, ordered steps, the existing codebase pattern to follow (path:line), concrete test assertions, and verification commands with expected output.
-- Pseudocode or reference code only for complex or unfamiliar algorithms.
+- Each task lists: exact file paths (Create/Modify/Test), interfaces, ordered steps, the codebase pattern to follow (path:line), concrete test assertions, verification commands with expected output, dependencies on earlier tasks (or none).
+- Pseudocode or reference code only for complex or unfamiliar logic.
 - No full code listings for routine changes. The hybrid planning contract takes precedence over any instruction to include complete code in every implementation step.
-- Keep upstream Superpowers' workflow otherwise: plan location docs/superpowers/plans/, header, task/checkbox structure, TDD, self-review, execution handoff.
+- Self-review also checks: each task passes the human-executable test (doable from its text alone) and has every item above; code only where needed.
+- Otherwise keep upstream's workflow: plan location docs/superpowers/plans/, header, task checkboxes, TDD, self-review, handoff.
 </tobin-superpowers-planning-preferences>"""
 
 HTML_COMPANION = """\
 <tobin-superpowers-html-companion>
-When a superpowers artifact is final, offer an HTML companion once per artifact, as its own short message: "Would you like an HTML companion for this <artifact> to share with your team? (yes/no)". Final means: design spec after the user approves it; implementation plan after its self-review, before execution handoff; code review report once its findings are fixed or the user defers them; subagent run summary when you report the run complete after the final review, even if the branch-finishing step is skipped. Never generate HTML unless the user says yes; on yes, use tobin-superpowers:html-companion. Skip the offer if it was already asked for that artifact.
+When a superpowers artifact is final, offer an HTML companion once per artifact, as its own message: "Would you like an HTML companion for this <artifact> to share with your team? (yes/no)". Final means: design spec after the user approves it (asking to continue to the next step counts as approval: ask first and wait for the answer); implementation plan after its self-review, before execution handoff; code review report once its findings are fixed or the user defers them; subagent run summary when you report the run complete after the final review, even if the branch-finishing step is skipped. Never generate HTML unless the user says yes; on yes, use tobin-superpowers:html-companion.
 </tobin-superpowers-html-companion>"""
 
 RESTATE_NOTE = "(Restated after {source}; these preferences still apply.)"

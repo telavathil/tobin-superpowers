@@ -122,9 +122,25 @@ class OutputContentTests(unittest.TestCase):
             "verification commands",
             "Pseudocode or reference code",
             "No full code listings for routine changes",
+            "dependencies on earlier tasks",
+            "human-executable test",
+            "Self-review also checks",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, self.context)
+
+    def test_every_source_variant_is_concise(self):
+        # The restate line makes resume/clear/compact/fork the longest outputs.
+        module = load_module()
+        for source in SESSION_SOURCES:
+            with self.subTest(source=source):
+                self.assertLess(len(module.build_context(source)), MAX_CONTEXT_CHARS)
+
+    def test_summary_does_not_replace_the_skill(self):
+        # 1.0.2: "authoritative if you do not [read the skill]" made Claude
+        # skip the skill entirely in a real session.
+        self.assertNotIn("authoritative", self.context)
+        self.assertIn("read that skill when this summary leaves a question open", self.context)
 
     def test_version_independent_precedence_wording(self):
         self.assertIn(PRECEDENCE, self.context)
@@ -162,7 +178,9 @@ class HtmlCompanionContextTests(unittest.TestCase):
     def test_all_four_artifacts_and_timing(self):
         for phrase in ("design spec", "implementation plan", "code review report",
                        "run summary", "after the user approves", "self-review",
-                       "final review"):
+                       "final review",
+                       "asking to continue to the next step counts as approval",
+                       "ask first and wait for the answer"):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, self.block)
 
@@ -240,7 +258,7 @@ class WiringTests(unittest.TestCase):
             entry = json.load(f)["plugins"][0]
         self.assertEqual(entry["name"], plugin["name"])
         self.assertEqual(entry["version"], plugin["version"])
-        self.assertEqual(plugin["version"], "1.0.1")
+        self.assertEqual(plugin["version"], "1.0.2")
 
 
     def test_skill_frontmatter(self):
@@ -250,6 +268,10 @@ class WiringTests(unittest.TestCase):
         frontmatter = text.split("---\n")[1]
         self.assertIn("name: hybrid-planning\n", frontmatter)
         self.assertIn("description: ", frontmatter)
+        # 1.0.2: the description matches the body (a summary is injected; the
+        # skill is read for detail) instead of telling Claude to load it always.
+        self.assertIn("that a SessionStart hook summarizes", frontmatter)
+        self.assertNotIn("Use alongside", frontmatter)
         self.assertIn(PRECEDENCE, text)
         self.assertNotIn('"Complete code in every step"', text)
 

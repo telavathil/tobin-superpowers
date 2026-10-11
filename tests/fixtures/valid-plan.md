@@ -45,6 +45,8 @@
 
 **Pattern to follow:** none — new module-level helper.
 
+**Dependencies:** none (independent of Task 1).
+
 **Algorithm:**
 ```
 n = number of vowel groups [aeiouy]+ in word

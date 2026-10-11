@@ -1,7 +1,7 @@
 {
   "name": "tobin-superpowers",
   "description": "Extension for the official superpowers plugin: auto-loads hybrid planning preferences, gives advisory validation of implementation plans, and offers optional shareable HTML companions for specs, plans, code reviews, and run summaries. Requires superpowers; does not replace its skills.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": {
     "name": "Tobin Elavathil",
     "email": "tobin.elavathil@gmail.com"

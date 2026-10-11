@@ -22,7 +22,9 @@ superpowers keeps working (and updating) exactly as published.
   `tobin-superpowers:hybrid-planning` skill.
 - **Automatic plan validation.** When Claude writes or edits a plan in
   `docs/superpowers/plans/`, an advisory structural check runs and sends any
-  gaps back to Claude.
+  gaps back to Claude. Once a plan has no errors, and whenever a spec is
+  written, the same hook reminds Claude to offer the HTML companion at the
+  handoff.
 - **Optional HTML companions.** At the end of a spec, plan, code review, or
   subagent run, Claude offers a self-contained `.html` version to share with
   your team, and creates it only if you say yes.
@@ -70,7 +72,7 @@ Then restart Claude Code.
 ### Verifying
 
 - `/plugin` lists `superpowers` and `tobin-superpowers` with the versions
-  you expect (this plugin: `1.0.1`). From a shell: `claude plugin list` and
+  you expect (this plugin: `1.0.2`). From a shell: `claude plugin list` and
   `claude plugin details tobin-superpowers@tobin-superpowers-dev`.
 - `tobin-superpowers` shows exactly two skills (`hybrid-planning`,
   `html-companion`) and two hooks (`SessionStart`, `PostToolUse`). All
@@ -92,9 +94,14 @@ Then restart Claude Code.
 5. At supported handoffs Claude asks once: *"Would you like an HTML
    companion for this … to share with your team? (yes/no)"*. Say yes to get
    a `.html` file next to the markdown; say no and the workflow continues.
+   For a spec, asking to move on ("write the plan", "go ahead") counts as
+   approval: Claude asks the question first and waits for your answer.
 
 **HTML offers are best-effort.** They come from instructions Claude
-follows, not from a hook that guarantees completion. Claude may skip an
+follows, not from a hook that guarantees completion. Since 1.0.2 the plan
+and spec reminders also arrive through the PostToolUse hook, right next to
+the handoff, because session-start instructions can lose to a freshly
+loaded workflow script in long sessions. Claude may skip an
 offer, ask at a slightly different moment, or bundle it with another
 question. You can always ask directly: *"make an HTML companion for
 docs/superpowers/plans/x.md"*.
@@ -121,14 +128,23 @@ After Claude uses `Write` or `Edit` on a Markdown file under
 `<project>/docs/superpowers/plans/`, `scripts/validate-plan-hook.py`
 validates the file as it now exists on disk.
 
-- **Clean plan:** no output at all.
-- **Warnings only:** findings go to Claude (`additionalContext`).
-- **Errors:** the same, plus a one-line notice for you
-  (`Plan validation: N errors … (advisory; details sent to Claude)`).
+- **Errors:** findings go to Claude (`additionalContext`), plus a one-line
+  notice for you (`Plan validation: N errors … (advisory; details sent to
+  Claude)`).
+- **No errors** (clean, or warnings only): any warnings go to Claude, followed
+  by a reminder — *"Plan has no validation errors. Run the self-review, then
+  offer the HTML companion as its own message before the execution handoff
+  (skip if already offered for this plan)."* No notice for you.
+
+The same hook reacts to Markdown writes under
+`<project>/docs/superpowers/specs/` with one line for Claude: *"When the user
+approves this spec, or asks to continue to the plan, offer the HTML
+companion as its own message first and wait for the answer before starting
+the plan (skip if already offered for this spec)."* Specs are not validated.
 
 The feedback is **advisory**: PostToolUse runs after the write, so it
-cannot prevent or undo it, and the hook never modifies the plan. Unrelated
-files are ignored. The project root is `$CLAUDE_PROJECT_DIR` (falling back
+cannot prevent or undo it, and the hook never modifies the plan or spec.
+Other files produce no output. The project root is `$CLAUDE_PROJECT_DIR` (falling back
 to the hook's `cwd`); paths are resolved (`..`, symlinks) before matching,
 so look-alikes such as `docs/superpowers/plans-old/` are ignored.
 
@@ -154,6 +170,7 @@ Each `Task N` section is checked on its own:
 | `verification` | error | A runnable command (with arguments, or after a Run/Verify label) |
 | `expected-result` | warning | What success looks like (`Expected: …`, `3 passed`, `PASS`) |
 | `pattern` | warning | An existing code pattern to follow, or an explicit "none" |
+| `dependencies` | warning | Tasks after the first: a `Dependencies:` line (or "none"), "depends on Task N", or a `Consumes:` line naming an earlier task |
 | `inexact-path` | warning | No wildcards or `<placeholders>` in file paths |
 | `placeholder` | error | No `TBD`/`TODO`/`FIXME`, "implement later", "write tests for the above" |
 | `vague-instruction` | warning | No "handle edge cases", "add appropriate error handling", "similar to Task N" |
@@ -203,8 +220,10 @@ small sample, not a guarantee:
 
 | Workflow | Offer |
 | --- | --- |
-| Brainstorming (spec written) | at the right handoff, as its own message (2/2) |
-| Writing plans | at the right handoff (5/5), usually bundled with the execution-handoff question (4/5) |
+| Brainstorming (spec written, user says "approved") | at the right handoff, as its own message (2/2) |
+| Brainstorming, implicit approval (user says "write the plan") | 1.0.2: offer as its own message, then waits for the answer before writing-plans (2/2); an intermediate wording that said "then continue" offered but did not wait (2/2). 1.0.1: not offered (real session) |
+| Writing plans | 1.0.2: as its own message before the execution handoff, after the hook's reminder (5/5). 1.0.1: bundled with the execution-handoff question (4/5) |
+| Writing plans, long session | 1.0.2: offered before the handoff after 30 prior tool calls (1/1) and after `/compact` (1/1). 1.0.1: missed in a real ~420-entry session |
 | Code review | 1.0.1: right after the user defers the findings, own message (2/2); not while findings are open. 1.0.0 wording: 1/4 |
 | Subagent-driven development | 1.0.1: in the run-completion message (2/2). 1.0.0 wording: 1/3 |
 | After "yes" (all four types) | companion written, validator 0 errors, markdown unchanged, HTML untracked |
@@ -232,8 +251,10 @@ match the plan validator.
   plugin's hooks.
 - **See hook runs:** `claude --debug hooks`, then look for
   `session-context.py` and `validate-plan-hook.py`.
-- **Reproduce plan validation:**
+- **Reproduce plan validation:** (a plan without errors shows the offer reminder)
   `echo '{"tool_name":"Write","cwd":"'"$PWD"'","tool_input":{"file_path":"docs/superpowers/plans/x.md"}}' | python3 scripts/validate-plan-hook.py`
+- **Reproduce the spec reminder:** (the file must exist)
+  `echo '{"tool_name":"Write","cwd":"'"$PWD"'","tool_input":{"file_path":"docs/superpowers/specs/x.md"}}' | python3 scripts/validate-plan-hook.py`
 - **No offers or preferences?** Check `/hooks` and that `python3` is on
   `PATH`.
 
@@ -242,7 +263,7 @@ match the plan validator.
 ```
 tobin-superpowers/
 ├── .claude-plugin/
-│   ├── plugin.json                # plugin manifest (1.0.1)
+│   ├── plugin.json                # plugin manifest (1.0.2)
 │   └── marketplace.json           # tobin-superpowers-dev marketplace
 ├── hooks/
 │   └── hooks.json                 # SessionStart + PostToolUse (Write|Edit)
