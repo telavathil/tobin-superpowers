@@ -238,6 +238,19 @@ class CliTests(unittest.TestCase):
                     self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
                     self.assertNotIn("Traceback", result.stderr)
 
+
+    def test_non_utf8_console_does_not_crash(self):
+        # Windows pipes default to cp1252, which cannot encode the arrows and
+        # dashes in findings; output must degrade, not raise.
+        env = dict(os.environ, PYTHONIOENCODING="cp1252")
+        for args, code in (((EXTERNAL,), 1), ((PLAN_HTML, "--source", PLAN_MD), 0)):
+            with self.subTest(args=args):
+                result = subprocess.run([sys.executable, SCRIPT, *args], capture_output=True,
+                                        text=True, encoding="cp1252", timeout=10, env=env)
+                self.assertEqual(result.returncode, code, result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+                self.assertIn("Summary:", result.stdout)
+
     def test_never_modifies_html_or_markdown(self):
         with tempfile.TemporaryDirectory() as tmp:
             for name in os.listdir(os.path.join(COMPANIONS, "plans")):
