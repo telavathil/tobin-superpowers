@@ -2,7 +2,8 @@
 
 tobin-superpowers is an independent extension. It owns only its own files —
 `hooks/`, `scripts/`, `skills/hybrid-planning/`, `skills/html-companion/`,
-`skills/shared/`, and `tests/`. Official superpowers is installed and updated
+`skills/promote-skill/`, `skills/shared/`, and `tests/` — plus any skills you
+import with `promote-skill`, each in its own `skills/<name>/`. Official superpowers is installed and updated
 separately; nothing here is copied from it or merged with it.
 
 ## Updating This Plugin
@@ -49,8 +50,9 @@ Then check, in a scratch git repository:
 1. **Skill resolution.** `superpowers:brainstorming`, `superpowers:writing-plans`,
    `superpowers:requesting-code-review`, and
    `superpowers:subagent-driven-development` still exist (the workflow names
-   this plugin's instructions refer to), and `tobin-superpowers` lists only
-   `hybrid-planning` and `html-companion`.
+   this plugin's instructions refer to), and `tobin-superpowers` lists
+   `hybrid-planning`, `html-companion` and `promote-skill` (plus any skills
+   you promoted).
 2. **SessionStart.** Run
    `claude -p "Reply ok" --output-format stream-json --verbose --include-hook-events`
    and confirm the `SessionStart` hook response contains
@@ -130,6 +132,35 @@ The per-artifact "Companion: …" sections (offer question, timing, rendering
 priorities) are pinned by `tests/test_html_companion_skill.py`; change the
 test expectations deliberately when you change them.
 
+## Skill Promotion
+
+`skills/promote-skill/SKILL.md` drives the workflow; two stdlib scripts do
+the mechanical parts:
+
+- `scripts/validate-portable-skill.py` reads a staging folder or a bare skill
+  folder and never executes, modifies, or echoes secrets from it. Its
+  `MANIFEST_KEYS`, `REVIEW_SECTIONS`, statuses and reserved names are the
+  contract; `tests/test_promote_skill.py` checks that the manifest and
+  REVIEW.md templates embedded in the skill still match them, so change both
+  together.
+- `scripts/import-portable-skill.py` plans by default, applies only with
+  `--apply`, and never commits, pushes, tags or opens a pull request (a test
+  greps its source for those git verbs). Its post-import checks run the
+  repository suite with `PROMOTE_SKILL_NESTED_CHECK=1`; the two end-to-end
+  tests that themselves run an import skip under that variable to avoid
+  recursion.
+- When official superpowers adds or renames a skill, update
+  `UPSTREAM_SKILLS` in the validator as well as in
+  `tests/test_independent_extension.py`.
+- A new built-in skill belongs in `EXTENSION_SKILLS` (validator and
+  architecture test) and `BUILT_IN_SKILL_DIRS` (`tests/promote_helpers.py`).
+  Skills imported with `promote-skill` need no test changes: the
+  architecture test accepts any skill folder whose name matches its
+  frontmatter and does not shadow an official skill.
+- Fixtures under `tests/fixtures/promote/` are synthetic. Never add a real
+  work skill, and never store a credential-shaped literal: tests build them
+  at runtime (`promote_helpers.fake_secrets`).
+
 ## Continuous Integration
 
 `.github/workflows/ci.yml` runs on every pull request and on pushes to
@@ -160,6 +191,8 @@ python3 scripts/validate-plan.py tests/fixtures/valid-plan.md             # exit
 python3 scripts/validate-plan.py tests/fixtures/incomplete-plan.md        # exit 1
 python3 scripts/validate-html-companion.py tests/fixtures/companions/plans/2026-01-01-demo.html   # exit 0
 python3 scripts/validate-html-companion.py tests/fixtures/companions/plans/external-assets.html   # exit 1
+python3 scripts/validate-portable-skill.py tests/fixtures/promote/candidate/skill-promotion          # exit 0
+python3 scripts/validate-portable-skill.py tests/fixtures/promote/source/diagram-as-code            # exit 0, 8 warnings
 echo '{"source":"startup"}' | python3 scripts/session-context.py
 ```
 

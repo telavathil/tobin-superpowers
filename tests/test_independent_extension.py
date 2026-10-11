@@ -17,7 +17,10 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKILLS_DIR = os.path.join(REPO_ROOT, "skills")
 THIS_FILE = os.path.abspath(__file__)
 
-EXTENSION_SKILLS = {"hybrid-planning", "html-companion"}
+# Skills this plugin ships itself. Skills imported with promote-skill sit
+# beside them under their own names; they must never shadow an upstream or
+# built-in skill.
+EXTENSION_SKILLS = {"hybrid-planning", "html-companion", "promote-skill"}
 
 # Skills shipped by official superpowers (7.0.0 plus names used by earlier
 # releases). None of them may be copied into this plugin.
@@ -59,8 +62,8 @@ class NoCopiedUpstreamSkillsTests(unittest.TestCase):
         present = UPSTREAM_SKILLS.intersection(os.listdir(SKILLS_DIR))
         self.assertEqual(present, set(), "copied upstream skills: %s" % sorted(present))
 
-    def test_only_extension_skills_are_discoverable(self):
-        self.assertEqual(skill_dirs(), EXTENSION_SKILLS)
+    def test_extension_skills_are_discoverable(self):
+        self.assertTrue(EXTENSION_SKILLS <= skill_dirs(), skill_dirs())
 
     def test_no_skill_name_shadows_upstream(self):
         for skill in skill_dirs():
@@ -71,7 +74,8 @@ class NoCopiedUpstreamSkillsTests(unittest.TestCase):
                 self.assertEqual(name, skill)
 
     def test_skills_dir_contents(self):
-        self.assertEqual(set(os.listdir(SKILLS_DIR)), EXTENSION_SKILLS | {"shared"})
+        # Every entry is a skill folder (built-in or promoted) or shared/.
+        self.assertEqual(set(os.listdir(SKILLS_DIR)), skill_dirs() | {"shared"})
         self.assertEqual(os.listdir(os.path.join(SKILLS_DIR, "shared")), ["html-companion-guide.md"])
 
 
@@ -87,7 +91,7 @@ class NoStaleReferencesTests(unittest.TestCase):
         for path in repo_text_files():
             for name in re.findall(r"tobin-superpowers:([a-z][\w-]*)", read(path)):
                 with self.subTest(path=os.path.relpath(path, REPO_ROOT), name=name):
-                    self.assertIn(name, EXTENSION_SKILLS)
+                    self.assertIn(name, skill_dirs())
 
     def test_superpowers_skill_references_are_official(self):
         for path in repo_text_files():
@@ -109,8 +113,8 @@ class ManifestTests(unittest.TestCase):
         self.marketplace = json.loads(read(os.path.join(REPO_ROOT, ".claude-plugin", "marketplace.json")))
         self.entry = self.marketplace["plugins"][0]
 
-    def test_versions_agree_at_1_0_2(self):
-        self.assertEqual(self.plugin["version"], "1.0.2")
+    def test_versions_agree_at_1_1_0(self):
+        self.assertEqual(self.plugin["version"], "1.1.0")
         self.assertEqual(self.entry["version"], self.plugin["version"])
         self.assertEqual(self.entry["name"], self.plugin["name"])
         self.assertEqual(self.plugin["name"], "tobin-superpowers")

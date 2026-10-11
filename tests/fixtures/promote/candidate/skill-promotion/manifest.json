@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "name": "diagram-as-code",
+  "description": "Draft and check Mermaid diagrams that live as code next to the docs they illustrate",
+  "mode": "source",
+  "requires": {
+    "runtime": ["python3>=3.11"],
+    "tools": ["Read", "Write", "Edit", "Bash"],
+    "dependencies": ["mermaid-cli (optional, public npm package, previews only)"]
+  },
+  "files": [
+    "SKILL.md",
+    "references/style.md",
+    "scripts/check_mermaid.py",
+    "tests/test_check_mermaid.py"
+  ],
+  "validation_commands": [
+    "python3 -m unittest discover -s tests -v"
+  ],
+  "status": "draft",
+  "approval": {
+    "approved_by_user": false,
+    "digest": null,
+    "transfer_authorized": false,
+    "publication_authorized": false
+  }
+}
