@@ -1,5 +1,7 @@
 # tobin-superpowers
 
+[![CI](https://github.com/telavathil/tobin-superpowers/actions/workflows/ci.yml/badge.svg)](https://github.com/telavathil/tobin-superpowers/actions/workflows/ci.yml)
+
 An extension for the official
 [superpowers](https://github.com/obra/superpowers) plugin for Claude Code.
 
@@ -29,8 +31,10 @@ superpowers keeps working (and updating) exactly as published.
 
 ## Installation
 
-Requires Claude Code with plugin support and `python3` on `PATH` (macOS,
-Linux, WSL). No other dependencies.
+Requires Claude Code with plugin support and `python3` (3.11+) on `PATH`
+(macOS, Linux, WSL). No other dependencies. CI runs the test suite on Linux,
+macOS, and Windows; on native Windows the hooks still need a `python3`
+executable on `PATH`.
 
 1. Install official superpowers first (skip if you already have it):
 

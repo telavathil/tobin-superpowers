@@ -528,6 +528,17 @@ def format_json(display_path, findings):
     }, indent=2)
 
 
+def tolerate_console_encoding():
+    """Keep printing on consoles that cannot encode every character.
+
+    Windows pipes default to cp1252, which has no arrow; without this, a
+    finding containing one would crash the CLI with UnicodeEncodeError.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="backslashreplace")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="validate-plan.py",
@@ -535,6 +546,7 @@ def main(argv=None):
     parser.add_argument("path", help="Markdown plan, e.g. docs/superpowers/plans/x.md")
     parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
     args = parser.parse_args(argv)
+    tolerate_console_encoding()
     try:
         findings = validate_file(args.path)
     except PlanReadError as exc:

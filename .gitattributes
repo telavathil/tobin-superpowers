@@ -1,0 +1,3 @@
+# Keep LF everywhere so SKILL.md frontmatter, fixtures, and line-based
+# tests behave the same on Windows checkouts.
+* text=auto eol=lf

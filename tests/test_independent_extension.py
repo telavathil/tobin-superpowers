@@ -131,6 +131,32 @@ class ManifestTests(unittest.TestCase):
         self.assertNotIn("fork", [k.lower() for k in self.plugin.get("keywords", [])])
 
 
+class CiWorkflowTests(unittest.TestCase):
+    def setUp(self):
+        self.workflow = read(os.path.join(REPO_ROOT, ".github", "workflows", "ci.yml"))
+
+    def test_runs_the_full_test_suite_on_all_platforms(self):
+        self.assertIn("python -W error::ResourceWarning -m unittest discover -s tests -v", self.workflow)
+        for runner in ("ubuntu-latest", "macos-latest", "windows-latest"):
+            with self.subTest(runner=runner):
+                self.assertIn(runner, self.workflow)
+
+    def test_validates_plugin_with_claude_code(self):
+        self.assertIn("plugin validate --strict .", self.workflow)
+        self.assertIn("plugin validate --strict .claude-plugin/plugin.json", self.workflow)
+
+    def test_actions_pinned_to_commit_sha(self):
+        uses = re.findall(r"uses:\s*(\S+)", self.workflow)
+        self.assertTrue(uses)
+        for ref in uses:
+            with self.subTest(ref=ref):
+                self.assertRegex(ref, r"^[\w.-]+/[\w.-]+@[0-9a-f]{40}$")
+
+    def test_read_only_token(self):
+        self.assertRegex(self.workflow, r"permissions:\s*\n\s*contents: read")
+        self.assertNotRegex(self.workflow, r"\bpull_request_target\b")
+
+
 class HookAndScriptTests(unittest.TestCase):
     def test_hook_script_paths_resolve(self):
         config = json.loads(read(os.path.join(REPO_ROOT, "hooks", "hooks.json")))["hooks"]

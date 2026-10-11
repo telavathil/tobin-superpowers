@@ -130,6 +130,26 @@ The per-artifact "Companion: …" sections (offer question, timing, rendering
 priorities) are pinned by `tests/test_html_companion_skill.py`; change the
 test expectations deliberately when you change them.
 
+## Continuous Integration
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to
+`main`:
+
+- **Tests:** `python -W error::ResourceWarning -m unittest discover -s tests -v`
+  on Linux, macOS, and Windows with Python 3.11 and 3.13 (plus 3.12 on
+  Linux). No dependencies are installed — a failure here usually means a
+  non-stdlib import or a platform assumption.
+- **Plugin validation:** `claude plugin validate --strict` on the
+  marketplace and plugin manifests, using a pinned Claude Code version
+  (`@anthropic-ai/claude-code@…` in the workflow). Bump that pin when you
+  test against a newer Claude Code release.
+
+Actions are pinned to full commit SHAs with the release tag in a comment,
+and the workflow token is read-only; `tests/test_independent_extension.py`
+enforces both. To update an action, resolve the new tag's commit with
+`git ls-remote https://github.com/<owner>/<action> refs/tags/<tag>^{}` and
+replace the SHA and comment together.
+
 ## Test Commands
 
 Regression (no network, standard library only):
