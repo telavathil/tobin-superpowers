@@ -117,9 +117,16 @@ class OfferAndConsentTests(unittest.TestCase):
         for timing in ("after the user approves the written spec",
                        "after the plan's self-review is clean, before the execution handoff",
                        "Critical/Important issues are fixed or deferred",
-                       "once, after the final review approves"):
+                       "once, after the final review approves",
+                       "asking to continue to the next step (\"write the plan\", \"go ahead\", \"next\") counts as approval"):
             with self.subTest(timing=timing):
                 self.assertIn(timing, table)
+
+    def test_implicit_spec_approval_in_section(self):
+        section = skill_section("Design Spec").split("### The Offer", 1)[0]
+        self.assertIn("asking to continue to the next step (\"write the plan\", \"go ahead\", \"next\") counts as approval", section)
+        self.assertIn("ask the offer question as its own short message first", section)
+        self.assertIn("wait for the answer; do not start writing-plans in the same turn", section)
 
     def test_deferral_and_run_completion_handoffs(self):
         table = self.text.split("## When to Offer", 1)[1].split("\n## ", 1)[0]

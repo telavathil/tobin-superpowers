@@ -17,6 +17,8 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPT = os.path.join(REPO_ROOT, "scripts", "validate-plan.py")
 FIXTURES = os.path.join(REPO_ROOT, "tests", "fixtures")
 VALID = os.path.join(FIXTURES, "valid-plan.md")
+WITH_DEPS = os.path.join(FIXTURES, "dependencies-plan.md")
+MISSING_DEPS = os.path.join(FIXTURES, "missing-dependencies-plan.md")
 INCOMPLETE = os.path.join(FIXTURES, "incomplete-plan.md")
 
 
@@ -268,6 +270,50 @@ class PlaceholderTests(unittest.TestCase):
         self.assertEqual(VP.validate_text(task(body)), [])
 
 
+def two_tasks(second_body):
+    """Plan with GOOD_TASK as Task 1 and the given body as Task 2."""
+    return task(GOOD_TASK) + "\n### Task 2: Second\n\n%s\n" % textwrap.dedent(second_body).strip()
+
+
+class DependenciesTests(unittest.TestCase):
+    """1.0.2: per-task dependencies (hybrid contract item 7)."""
+
+    def test_first_task_is_exempt(self):
+        self.assertEqual(VP.validate_text(task(GOOD_TASK)), [])
+
+    def test_later_task_without_dependencies_warns(self):
+        findings = VP.validate_text(two_tasks(GOOD_TASK))
+        self.assertEqual(VP.errors(findings), [])
+        dep = [f for f in findings if f.rule == "dependencies"]
+        self.assertEqual([(f.task, f.severity) for f in dep], [(2, "warning")])
+        self.assertTrue(dep[0].suggestion)
+
+    def test_accepted_forms(self):
+        for line in ("**Dependencies:** none",
+                     "**Dependencies:** Task 1 (`greet`)",
+                     "Dependencies: none — independent of Task 1.",
+                     "Depends on Task 1.",
+                     "- Consumes: `greet(name)` from Task 1"):
+            with self.subTest(line=line):
+                body = GOOD_TASK.replace("**Pattern to follow:**", line + "\n\n    **Pattern to follow:**")
+                self.assertNotIn(("dependencies", 2), keyed(VP.validate_text(two_tasks(body))))
+
+    def test_consumes_without_earlier_task_still_warns(self):
+        for line in ("- Consumes: `greet(name)`", "- Consumes: `x` from Task 3"):
+            with self.subTest(line=line):
+                body = GOOD_TASK.replace("**Pattern to follow:**", line + "\n\n    **Pattern to follow:**")
+                self.assertIn(("dependencies", 2), keyed(VP.validate_text(two_tasks(body))))
+
+    def test_fixture_with_dependencies_is_clean(self):
+        self.assertEqual(VP.validate_text(read(WITH_DEPS)), [])
+
+    def test_fixture_missing_dependencies(self):
+        findings = VP.validate_text(read(MISSING_DEPS))
+        self.assertEqual(VP.errors(findings), [])
+        self.assertEqual([(f.rule, f.task, f.line, f.severity) for f in findings],
+                         [("dependencies", 2, 20, "warning"), ("dependencies", 3, 35, "warning")])
+
+
 class MultiTaskLocationTests(unittest.TestCase):
     def setUp(self):
         self.findings = VP.validate_text(read(INCOMPLETE))
@@ -283,6 +329,8 @@ class MultiTaskLocationTests(unittest.TestCase):
             ("tests", 3): ("error", 30),
             ("vague-instruction", 3): ("warning", 37),
             ("placeholder", 3): ("error", 38),
+            ("dependencies", 2): ("warning", 17),
+            ("dependencies", 3): ("warning", 30),
         }
         for key, (severity, line) in expected.items():
             with self.subTest(key=key):

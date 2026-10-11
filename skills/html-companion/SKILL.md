@@ -20,7 +20,7 @@ steps of a run:
 
 | Artifact | Offer when | Section below |
 | --- | --- | --- |
-| design spec (`brainstorming`) | after the user approves the written spec, before handing off to writing-plans | Companion: Design Spec |
+| design spec (`brainstorming`) | after the user approves the written spec, before handing off to writing-plans; asking to continue to the next step ("write the plan", "go ahead", "next") counts as approval — ask the offer first and wait for the answer before continuing | Companion: Design Spec |
 | implementation plan (`writing-plans`) | after the plan's self-review is clean, before the execution handoff | Companion: Implementation Plan |
 | code review report (`requesting-code-review`) | after the review is in and Critical/Important issues are fixed or deferred (the user deferring them counts) | Companion: Code Review Report |
 | run summary (`subagent-driven-development`) | once, after the final review approves, when you report the run complete, even if the branch-finishing step is skipped | Companion: Run Summary |
@@ -77,6 +77,7 @@ Applies to the output of the official `superpowers:brainstorming` workflow.
 
 Run this step **after** the user has reviewed and approved the written spec
 (the user-review gate) and **before** transitioning to the writing-plans skill.
+Approval includes the user asking to continue to the next step ("write the plan", "go ahead", "next") counts as approval: ask the offer question as its own short message first, then wait for the answer; do not start writing-plans in the same turn.
 The markdown is the artifact of record; the HTML
 companion exists only to make it easier to share with a human teammate.
 

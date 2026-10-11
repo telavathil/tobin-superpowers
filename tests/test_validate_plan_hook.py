@@ -19,6 +19,13 @@ HOOK = os.path.join(REPO_ROOT, "scripts", "validate-plan-hook.py")
 HOOKS_JSON = os.path.join(REPO_ROOT, "hooks", "hooks.json")
 FIXTURES = os.path.join(REPO_ROOT, "tests", "fixtures")
 PLAN_DIR = os.path.join("docs", "superpowers", "plans")
+SPEC_DIR = os.path.join("docs", "superpowers", "specs")
+PLAN_REMINDER = ("Plan has no validation errors. Run the self-review, then offer the HTML "
+                 "companion as its own message before the execution handoff "
+                 "(skip if already offered for this plan).")
+SPEC_REMINDER = ("When the user approves this spec, or asks to continue to the plan, offer "
+                 "the HTML companion as its own message first and wait for the answer "
+                 "before starting the plan (skip if already offered for this spec).")
 
 WARNING_ONLY_PLAN = """# Plan
 
@@ -116,14 +123,23 @@ class FeedbackTests(HookTestCase):
         self.assertIn("fix:", context)
         self.assertIn("advisory", context.lower())
         self.assertIn("already", context.lower())
-        self.assertIn("has 6 errors, 2 warnings.", context)
-        self.assertIn("Summary: 6 errors, 2 warnings —", context)
+        self.assertIn("has 6 errors, 4 warnings.", context)
+        self.assertIn("Summary: 6 errors, 4 warnings —", context)
+        self.assertNotIn(PLAN_REMINDER, context)  # errors first; reminder once they are fixed
         self.assertNotIn("info", context)
         self.assertIn("6 errors", data["systemMessage"])
         self.assertNotIn(self.tmp, data["systemMessage"])
 
-    def test_valid_plan_is_silent(self):
-        self.assert_silent(self.run_payload(self.payload(self.valid)))
+    def test_clean_plan_gets_offer_reminder(self):
+        # 1.0.2: the reminder sits next to the handoff instead of only in
+        # session-start context (lost in long sessions).
+        data = self.assert_feedback(self.run_payload(self.payload(self.valid)))
+        context = data["hookSpecificOutput"]["additionalContext"]
+        self.assertIn(PLAN_REMINDER, context)
+        self.assertIn("docs/superpowers/plans/2026-01-01-valid.md", context)
+        self.assertNotIn("error [", context)
+        self.assertNotIn("warning [", context)
+        self.assertNotIn("systemMessage", data)
 
     def test_warnings_only_have_context_but_no_system_message(self):
         path = os.path.join(self.plans, "warn.md")
@@ -136,6 +152,7 @@ class FeedbackTests(HookTestCase):
         self.assertNotIn("error [", context)
         self.assertIn("has 0 errors, 1 warning.", context)
         self.assertNotIn("info", context)
+        self.assertIn(PLAN_REMINDER, context)
 
     def test_single_error_is_singular(self):
         path = os.path.join(self.plans, "one.md")
@@ -146,6 +163,7 @@ class FeedbackTests(HookTestCase):
             f.write(text)
         data = self.assert_feedback(self.run_payload(self.payload(path)))
         self.assertIn("has 1 error, 0 warnings.", data["hookSpecificOutput"]["additionalContext"])
+        self.assertNotIn(PLAN_REMINDER, data["hookSpecificOutput"]["additionalContext"])
         self.assertIn("Plan validation: 1 error, 0 warnings in", data["systemMessage"])
 
     def test_edit_tool_validates_file_on_disk(self):
@@ -159,7 +177,10 @@ class FeedbackTests(HookTestCase):
             text = f.read().replace("## Self-Review", "```python\n%s\n```\n\n## Self-Review" % code)
         with open(path, "w", encoding="utf-8") as f:
             f.write(text)
-        self.assert_silent(self.run_payload(self.payload(path)))
+        data = self.assert_feedback(self.run_payload(self.payload(path)))
+        context = data["hookSpecificOutput"]["additionalContext"]
+        self.assertIn(PLAN_REMINDER, context)
+        self.assertNotIn("long-code", context)
 
     def test_plan_is_never_modified(self):
         before = sha256(self.incomplete), os.stat(self.incomplete).st_mtime_ns
@@ -197,6 +218,51 @@ class BytecodeTests(HookTestCase):
                          os.listdir(scripts))
 
 
+class SpecReminderTests(HookTestCase):
+    """1.0.2: spec writes get a reminder close to the spec handoff."""
+
+    def setUp(self):
+        super().setUp()
+        self.spec_dir = os.path.join(self.project, SPEC_DIR)
+        self.spec = self.copy_fixture("incomplete-plan.md", "2026-01-01-topic-design.md", self.spec_dir)
+
+    def test_spec_write_and_edit_get_reminder(self):
+        for tool in ("Write", "Edit"):
+            with self.subTest(tool=tool):
+                data = self.assert_feedback(self.run_payload(self.payload(self.spec, tool=tool)))
+                context = data["hookSpecificOutput"]["additionalContext"]
+                self.assertIn(SPEC_REMINDER, context)
+                self.assertIn("docs/superpowers/specs/2026-01-01-topic-design.md", context)
+                self.assertNotIn("error [", context)  # specs are not plan-validated
+                self.assertNotIn("systemMessage", data)
+
+    def test_relative_spec_path(self):
+        rel = os.path.join(SPEC_DIR, "2026-01-01-topic-design.md")
+        self.assertIn(SPEC_REMINDER, self.assert_feedback(
+            self.run_payload(self.payload(rel)))["hookSpecificOutput"]["additionalContext"])
+
+    def test_spec_lookalikes_and_other_files_ignored(self):
+        cases = (
+            (os.path.join("docs", "superpowers", "specs-old"), "s.md"),
+            (os.path.join("other", "docs", "superpowers", "specs"), "s.md"),
+            (SPEC_DIR, "s.txt"),
+        )
+        for rel_dir, name in cases:
+            with self.subTest(rel_dir=rel_dir, name=name):
+                path = self.copy_fixture("incomplete-plan.md", name, os.path.join(self.project, rel_dir))
+                self.assert_silent(self.run_payload(self.payload(path)))
+
+    def test_spec_outside_project_and_missing_file_ignored(self):
+        outside = self.copy_fixture("incomplete-plan.md", "s.md", os.path.join(self.tmp, SPEC_DIR))
+        self.assert_silent(self.run_payload(self.payload(outside)))
+        self.assert_silent(self.run_payload(self.payload(os.path.join(self.spec_dir, "gone.md"))))
+
+    def test_spec_never_modified(self):
+        before = sha256(self.spec), os.stat(self.spec).st_mtime_ns
+        self.run_payload(self.payload(self.spec))
+        self.assertEqual((sha256(self.spec), os.stat(self.spec).st_mtime_ns), before)
+
+
 class PathMatchingTests(HookTestCase):
     def test_relative_path_resolved_against_cwd(self):
         rel = os.path.join(PLAN_DIR, "2026-01-01-incomplete.md")
@@ -219,7 +285,7 @@ class PathMatchingTests(HookTestCase):
 
     def test_markdown_outside_plan_dir_ignored(self):
         for rel in ("README.md", os.path.join("docs", "notes.md"),
-                    os.path.join("docs", "superpowers", "specs", "spec.md")):
+                    os.path.join("docs", "superpowers", "reviews", "review.md")):
             with self.subTest(rel=rel):
                 path = self.copy_fixture("incomplete-plan.md", os.path.basename(rel),
                                          os.path.join(self.project, os.path.dirname(rel)))

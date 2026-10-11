@@ -1,6 +1,6 @@
 ---
 name: hybrid-planning
-description: Use alongside superpowers:writing-plans whenever writing or revising an implementation plan - defines a lean, human-executable plan contract that controls how much detail and code each task carries
+description: Full detail of the lean, human-executable plan contract that a SessionStart hook summarizes - read when writing or revising a plan with superpowers:writing-plans and the summary leaves a question open
 ---
 
 # Hybrid Planning
