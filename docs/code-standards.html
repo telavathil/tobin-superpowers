@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Code Standards in tobin-superpowers</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #1f2328;
+      --muted: #656d76;
+      --border: #d0d7de;
+      --surface: #f6f8fa;
+      --critical-fg: #82071e;
+      --critical-bg: #ffebe9;
+      --warning-fg: #7d4e00;
+      --warning-bg: #fff8c5;
+      --info-fg: #0969da;
+      --info-bg: #ddf4ff;
+      --success-fg: #1a7f37;
+      --success-bg: #dafbe1;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   "Helvetica Neue", Arial, sans-serif;
+      font-size: 17px;
+      line-height: 1.55;
+    }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+    header.companion-header { border-bottom: 1px solid var(--border); padding-bottom: 1.25rem; margin-bottom: 2rem; }
+    header.companion-header h1 { margin: 0 0 .35rem; font-size: 1.85rem; line-height: 1.2; }
+    header.companion-header .meta { color: var(--muted); font-size: .95rem; }
+    h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: .75rem; padding-top: .25rem; }
+    h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: .5rem; }
+    p { margin: .75rem 0; }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+                   "Liberation Mono", monospace;
+      font-size: .9em;
+    }
+    pre { background: var(--surface); padding: .9rem 1rem; border-radius: 6px; overflow-x: auto; }
+    code { background: var(--surface); padding: .1em .35em; border-radius: 4px; }
+    pre code { background: transparent; padding: 0; }
+    .callout { border: 1px solid var(--border); border-left-width: 4px; border-radius: 6px; padding: .85rem 1rem; margin: 1rem 0; background: var(--surface); }
+    .callout.warning  { border-left-color: var(--warning-fg);  background: var(--warning-bg); }
+    .callout.info     { border-left-color: var(--info-fg);     background: var(--info-bg); }
+    .callout.success  { border-left-color: var(--success-fg);  background: var(--success-bg); }
+    .callout p:first-child, .callout ul:first-child { margin-top: 0; }
+    .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+    .pill { display: inline-block; font-size: .74rem; font-weight: 600; padding: .12rem .5rem; border-radius: 999px; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
+    .pill.info     { color: var(--info-fg);     background: var(--info-bg); }
+    .pill.success  { color: var(--success-fg);  background: var(--success-bg); }
+    .pill.warning  { color: var(--warning-fg);  background: var(--warning-bg); }
+    .pill.neutral  { color: var(--muted);       background: var(--surface); border: 1px solid var(--border); }
+    .toc { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: .9rem 1.1rem; margin: 1rem 0 2rem; }
+    .toc ul { margin: .25rem 0 0; padding-left: 1.2rem; columns: 2; }
+    .toc a { color: var(--info-fg); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .93rem; }
+    th, td { border: 1px solid var(--border); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+    th { background: var(--surface); }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .75rem; margin: 1rem 0; }
+    .summary .card { border: 1px solid var(--border); border-radius: 6px; padding: .8rem 1rem; }
+    .summary .card strong { display: block; margin-bottom: .25rem; }
+    .summary .card span { color: var(--muted); font-size: .93rem; }
+    .flow { list-style: none; padding: 0; margin: 1rem 0; counter-reset: step; }
+    .flow li { position: relative; padding: .55rem 0 .55rem 2.6rem; border-bottom: 1px solid var(--border); }
+    .flow li:last-child { border-bottom: none; }
+    .flow li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: .55rem; width: 1.7rem; height: 1.7rem; border-radius: 50%; background: var(--info-bg); color: var(--info-fg); font-weight: 600; font-size: .85rem; display: flex; align-items: center; justify-content: center; }
+    .std { border: 1px solid var(--border); border-radius: 6px; padding: .8rem 1rem; margin: .75rem 0; }
+    .std h3 { margin: 0 0 .2rem; font-size: 1.02rem; }
+    .std h3 code { font-size: .85em; }
+    .std .principle { margin: .1rem 0 .4rem; color: var(--muted); }
+    .std ul { margin: .3rem 0 0; padding-left: 1.2rem; font-size: .95rem; }
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .5rem; }
+    .pair pre { margin: 0; font-size: .82rem; }
+    .pair .lbl { font-size: .74rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; margin-bottom: .2rem; }
+    .pair .no .lbl { color: var(--critical-fg); }
+    .pair .yes .lbl { color: var(--success-fg); }
+    @media (max-width: 640px) { .pair { grid-template-columns: 1fr; } .toc ul { columns: 1; } }
+    footer.companion-footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+    footer.companion-footer code { background: transparent; padding: 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="companion-header">
+      <h1>Code Standards in tobin-superpowers</h1>
+      <div class="meta">
+        Companion to the tobin-superpowers README and the files in <code>standards/</code>
+        and <code>lint/</code> · plugin 1.2.0 · 2026-10-12
+      </div>
+    </header>
+
+    <div class="summary">
+      <div class="card"><strong>11 standards</strong><span>Short rules for comments, types, fallbacks, reuse, tests, logging, refactoring scope and more.</span></div>
+      <div class="card"><strong>Injected at plan time</strong><span>Loaded automatically when a plan-writing skill runs. No one has to remember to read them.</span></div>
+      <div class="card"><strong>Copied into every plan</strong><span>The plan carries the binding rules, so implementers and reviewers see them too.</span></div>
+      <div class="card"><strong>Lint baseline, once per repo</strong><span>TypeScript, Go and Python configs are compared with a baseline, and gaps get a separate PR.</span></div>
+      <div class="card"><strong>New-package prompt</strong><span>Installing a package not in the manifest needs your OK, which stops hallucinated package names.</span></div>
+    </div>
+
+    <div class="callout info">
+      <p><strong>The idea:</strong> AI-written code drifts toward the same habits: defensive guards for
+      impossible values, invented defaults, comments narrating the change, copy-pasted helpers, casts
+      in tests. These standards name those habits and ban them at the earliest point, when the plan
+      is written. By the time code exists, every task already carries the rules.</p>
+    </div>
+
+    <nav class="toc">
+      <strong>Contents</strong>
+      <ul>
+        <li><a href="#flow">How it works</a></li>
+        <li><a href="#standards">The 11 standards</a></li>
+        <li><a href="#plans">Rules for plans</a></li>
+        <li><a href="#lint">Lint baseline check</a></li>
+        <li><a href="#packages">New-package prompt</a></li>
+        <li><a href="#setup">Install, files and overrides</a></li>
+        <li><a href="#limits">Known gaps</a></li>
+      </ul>
+    </nav>
+
+    <h2 id="flow">How it works</h2>
+    <ol class="flow">
+      <li>You start a plan as usual with <code>superpowers:writing-plans</code> (or any skill named
+        <code>plan</code>).</li>
+      <li>A <code>PreToolUse</code> hook on the <code>Skill</code> tool notices the plan skill and injects
+        the standards into Claude's context. Claude Code moves any single hook's context over 10,000
+        characters to a file, so the hook runs as two commands, each about 7K: part 1 has the obligations, the index and
+        the first half of the standards, and part 2 has the rest.</li>
+      <li>Claude writes the plan against the standards. Every code block must comply, and the binding rules
+        of each applied standard are copied <em>verbatim</em> into the plan's
+        <strong>Global Constraints</strong> section.</li>
+      <li>On the first plan in a repo, part 2 also tells Claude to run the
+        <a href="#lint">lint baseline check</a>, ask where out-of-scope work is tracked, and record the result.
+        Later plans get the recorded state instead.</li>
+      <li>Implementers and reviewers only ever see the plan, and the rules are in it.</li>
+      <li>Separately, whenever Claude runs an install command, a <code>Bash</code> hook checks the
+        package against the manifest and <a href="#packages">asks you</a> if it is new.</li>
+    </ol>
+    <p>Both hooks only inform or ask. They never block a tool call and always exit 0.</p>
+
+    <h2 id="standards">The 11 standards</h2>
+    <p>Each standard is a short Markdown file in <code>standards/global/</code>: a principle,
+      <em>Forbidden</em> and <em>Allowed</em> lists, and a <code>// no</code> / <code>// yes</code> example. The core
+      rules are summarised below.</p>
+
+    <div class="std">
+      <h3>Trust the types <code>trust-types.md</code></h3>
+      <p class="principle">Validate untyped data once, where it enters. After that, trust the type.</p>
+      <ul>
+        <li>Validate at entry points: HTTP input, loose DB fields, queue payloads, third-party responses, env vars, files.</li>
+        <li>Everywhere else: no runtime checks for values the type rules out, no tests that cast to reach them,
+          no hand-written type guards for data that already has a schema, no identity maps.</li>
+        <li>Exhaustiveness goes through a <code>never</code> check, so the compiler proves it with no test needed.</li>
+      </ul>
+    </div>
+
+    <div class="std">
+      <h3>Type safety (TypeScript) <code>type-safety.md</code></h3>
+      <p class="principle">Applies to new and changed lines only.</p>
+      <ul>
+        <li>Forbidden: <code>any</code>, <code>as Type</code> (including <code>as never</code>), <code>!</code>,
+          <code>@ts-ignore</code>, <code>@ts-expect-error</code>, <code>eslint-disable</code>.</li>
+        <li>Prefer discriminated unions over objects with many optional fields.</li>
+        <li>Exceptions: <code>as const</code>, and partial mocks of large framework types in specs.</li>
+      </ul>
+      <div class="pair">
+        <div class="no"><div class="lbl">weak</div><pre><code>type Actor = { kind: 'user' | 'system';
+  userId?: string; service?: string };</code></pre></div>
+        <div class="yes"><div class="lbl">strong</div><pre><code>type Actor =
+  | { kind: 'user'; userId: string }
+  | { kind: 'system'; service: string };</code></pre></div>
+      </div>
+    </div>
+
+    <div class="std">
+      <h3>Fallbacks <code>fallbacks.md</code></h3>
+      <p class="principle">Required values fail fast. Don't invent defaults.</p>
+      <ul>
+        <li>Forbidden: <code>?? 'default'</code> on always-present values, <code>catch {}</code> that swallows errors,
+          returning <code>[]</code> / <code>null</code> to hide a missing upstream value.</li>
+        <li>Allowed: defaults the spec or API contract defines, and genuinely optional legacy data typed as <code>field?: T</code>.</li>
+      </ul>
+    </div>
+
+    <div class="std">
+      <h3>Edge cases <code>edge-cases.md</code></h3>
+      <p class="principle">At plan time, list the easy-to-miss inputs each changed function's type allows.</p>
+      <ul>
+        <li>Inputs that real callers or data can reach get handling and a test. Inputs nothing reaches are noted, not tested.</li>
+        <li>A wrong type (<code>any</code>, a required field real data omits, two copies of a type that disagree) gets fixed where the data enters, not guarded downstream.</li>
+      </ul>
+      <div class="pair">
+        <div class="no"><div class="lbl">no</div><pre><code>const first = orders[0].id
+// orders can be empty</code></pre></div>
+        <div class="yes"><div class="lbl">yes</div><pre><code>const first = orders.at(0)
+if (!first) throw new Error('order list is empty')</code></pre></div>
+      </div>
+    </div>
+
+    <div class="std">
+      <h3>Comments <code>comments.md</code></h3>
+      <p class="principle">Default: no comment. A comment must explain a <em>why</em> that stays true as long as the code does.</p>
+      <ul>
+        <li>Forbidden: narrating the change, ticket or time scope, <code>file:line</code> pointers, defending a review fix,
+          restating the code, arithmetic and labels in tests.</li>
+        <li>No ticket IDs, <code>Task N</code> or <code>Step N</code> anywhere in code: not in test names, errors, logs or constants.
+          The one exception is <code>// WARN: remove once PROJ-123 lands</code>.</li>
+      </ul>
+    </div>
+
+    <div class="std">
+      <h3>Reuse before writing <code>reuse.md</code></h3>
+      <p class="principle">Search for an existing helper, type, constant or wrapper before adding one.</p>
+      <ul>
+        <li>Derive types (<code>keyof</code>, <code>Pick</code>, <code>Extract</code>) instead of redeclaring them. No one-line forwarding wrappers,
+          no hand-kept lists that mirror a registry, and two functions with the same body are one function.</li>
+        <li>Limit: share code that changes for the same reason, not code that only looks alike.</li>
+      </ul>
+    </div>
+
+    <div class="std">
+      <h3>Compatibility shims <code>shims.md</code></h3>
+      <p class="principle">When renaming or removing, update every caller in the same change and delete the old form.</p>
+      <ul>
+        <li>Forbidden: alias exports, parameters widened to take both old and new shapes, dead "compat" fields, deprecated forwarders, <code>**kwargs</code> sinks.</li>
+        <li>Allowed only for callers that can't be updated, and the comment must name them.</li>
+      </ul>
+    </div>
+
+    <div class="std">
+      <h3>Testing <code>testing.md</code></h3>
+      <p class="principle">Shared typed builders, literal expected values, no casts on domain data.</p>
+      <ul>
+        <li>One builder per domain object, taking <code>Partial&lt;T&gt;</code> overrides. Extend an existing builder before writing a new one.</li>
+        <li>Assert literal values. Put the meaning in the test name, not in a comment, and never re-implement the formula under test.</li>
+      </ul>
+    </div>
+
+    <div class="std">
+      <h3>Logging <code>logging.md</code></h3>
+      <p class="principle">Log once per operation, at the outcome.</p>
+      <ul>
+        <li>No "starting X" / "X succeeded" pairs. Success logs go at debug level.</li>
+        <li>Errors are logged once, where they are handled, with the IDs needed to investigate, and not at every layer they pass through.</li>
+      </ul>
+    </div>
+
+    <div class="std">
+      <h3>Dependencies and APIs <code>dependencies.md</code></h3>
+      <p class="principle">Check an API against the installed version, not memory.</p>
+      <ul>
+        <li>Read the installed types or source. Before adding a package, check what is already installed, vet the
+          registry entry (publisher, downloads, repository) and say why the package is needed.</li>
+      </ul>
+    </div>
+
+    <div class="std">
+      <h3>Plan code <code>plan-code.md</code></h3>
+      <p class="principle">Plan code is copied verbatim by implementers, so it must be final code. <a href="#plans">More below</a>.</p>
+    </div>
+
+    <h2 id="plans">Rules for plans</h2>
+    <table>
+      <tr><th style="width:32%">Rule</th><th>What it means</th></tr>
+      <tr><td>Global Constraints</td><td>Binding rules from every applied standard are copied verbatim into the plan.</td></tr>
+      <tr><td>No speculative code</td><td>No helpers, constants, types or files a task doesn't need, but if a task would copy an existing block, extract it first.</td></tr>
+      <tr><td>Best existing pattern</td><td>Follow the best pattern for the concern, not the nearest one, and name it in the task. Don't add a new variant.</td></tr>
+      <tr><td>Realistic tests</td><td>No edge-case tests just to fill a quota. Each test needs a realistic input that could reach the code.</td></tr>
+      <tr><td>Produces / Consumes</td><td>Shared builders and helpers are named where they're created and in every later task that uses them.</td></tr>
+      <tr><td>Refactoring scope</td><td>Refactoring is part of the change, scoped by <em>functionality</em>, not files. Never diff into code unrelated features depend on. Untested code gets a characterization test first. An out-of-scope refactor is reported with its scope, then recorded in the repo's debt location or added as Task 0.</td></tr>
+    </table>
+
+    <h2 id="lint">Lint baseline check</h2>
+    <p>On the first plan in a repo, Claude compares each lint config the plan touches with a baseline. A monorepo can have several configs.
+      It reports gaps in one message, offers a <strong>separate</strong> gap PR so the feature plan stays clean, and asks once for the
+      repo's debt location (usually Jira). All rules are <code>error</code>, never <code>warn</code>, and existing violations
+      are frozen by a ratchet so only new code is held to the baseline.</p>
+    <table>
+      <tr><th>Language</th><th>Tool</th><th>Key rules</th><th>Ratchet</th></tr>
+      <tr><td>TypeScript</td><td>ESLint ≥ 9.24, flat config, typed linting</td>
+        <td>no floating or misused promises, no <code>any</code>, no unused vars; function ≤ 75 lines, complexity 15, params 4, depth 4</td>
+        <td><code>eslint --suppress-all</code> → committed <code>eslint-suppressions.json</code></td></tr>
+      <tr><td>Go</td><td>golangci-lint v2</td>
+        <td><code>errcheck</code>, <code>funlen</code> (75 lines / 50 statements), <code>gocyclo</code> 15, <code>revive</code>, <code>govet</code>, <code>staticcheck</code></td>
+        <td><code>issues.new-from-merge-base: main</code></td></tr>
+      <tr><td>Python</td><td>ruff + basedpyright</td>
+        <td>E, F, B, blind except, silent <code>try/except/pass</code>, ANN, complexity 15, args 5, statements 50; <code>reportAny</code></td>
+        <td><code>ruff --add-noqa</code> + <code>basedpyright --writebaseline</code></td></tr>
+    </table>
+    <p>Possible statuses: <span class="pill success">baseline</span> <span class="pill info">gap PR offered</span>
+      <span class="pill warning">can't ratchet (ESLint &lt; 9.24)</span> <span class="pill warning">typed lint too slow</span>.
+      If one-file typed lint takes over 5s, the two promise rules are left out.</p>
+    <p>The result is written to a per-repo marker file in the plugin's data folder:</p>
+    <pre><code>~/.claude/plugins/data/tobin-superpowers-tobin-superpowers-dev/repos/&lt;repo-path-with-dashes&gt;.md
+
+Checked: 2026-10-12
+Debt location: Jira PROJ
+
+## Configs
+- eslint.config.mjs: baseline</code></pre>
+    <p>Git worktrees share their main repo's marker. To run the check again, delete the marker file.</p>
+
+    <h2 id="packages">New-package prompt</h2>
+    <p>LLMs sometimes invent plausible package names, and attackers register them ("slopsquatting"). Before an install
+      command runs, a <code>Bash</code> hook reads it and asks you to confirm any package that isn't in the nearest
+      manifest. It only ever answers <em>ask</em>: it never blocks or approves a command, and if the check itself fails, it asks.</p>
+    <table>
+      <tr><th>Commands</th><th>Checked against</th></tr>
+      <tr><td><code>npm i</code> / <code>install</code> / <code>add</code>, <code>pnpm add</code>, <code>yarn add</code></td><td><code>package.json</code> (all dependency sections)</td></tr>
+      <tr><td><code>go get</code></td><td><code>go.mod</code> (subpackages of a listed module count)</td></tr>
+      <tr><td><code>pip install</code>, <code>python -m pip</code>, <code>uv add</code>, <code>uv pip install</code>, <code>poetry add</code></td><td><code>pyproject.toml</code> and <code>requirements*.txt</code></td></tr>
+    </table>
+    <p>It handles chained commands, <code>sudo</code> / <code>env</code> / <code>NAME=value</code> prefixes and Python name normalisation.</p>
+
+    <h2 id="setup">Install, files and overrides</h2>
+    <pre><code>/plugin marketplace add telavathil/tobin-superpowers
+/plugin install tobin-superpowers@tobin-superpowers-dev</code></pre>
+    <p>The plugin requires official <code>superpowers</code> and <code>python3</code> 3.11+ on <code>PATH</code>, and works on macOS, Linux and Windows.</p>
+    <table>
+      <tr><th>Path</th><th>Contents</th></tr>
+      <tr><td><code>standards/index.yml</code>, <code>standards/global/*.md</code></td><td>The standards. Only these are injected.</td></tr>
+      <tr><td><code>lint/check.md</code>, <code>typescript.md</code>, <code>go.md</code>, <code>python.md</code></td><td>The baseline procedure and configs, read only when needed.</td></tr>
+      <tr><td><code>scripts/inject-plan-standards.py</code></td><td>Plan-time injection hook (run as two parts, <code>1</code> and <code>2</code>).</td></tr>
+      <tr><td><code>scripts/ask-new-package.py</code></td><td>New-package prompt hook.</td></tr>
+    </table>
+    <div class="callout success">
+      <p><strong>Project overrides.</strong> A repo can add its own <code>agent-os/standards/</code>. Those add to the
+        global standards, and where they conflict, the project's version wins.</p>
+    </div>
+
+    <h2 id="limits">Known gaps</h2>
+    <div class="callout warning">
+      <ul>
+        <li>The package prompt doesn't cover <code>npx</code>, <code>bunx</code>, <code>uvx</code>, <code>pipx</code>,
+          <code>go install</code>, <code>bun add</code> or <code>yarn global add</code>. <code>npx</code> / <code>uvx</code> / <code>bunx</code>
+          run a package immediately and are the first follow-up.</li>
+        <li>It reads the manifest from the session's folder, so a <code>cd</code> earlier in the same command isn't followed. It also skips commands
+          wrapped in <code>bash -c</code>, <code>time</code> or <code>nohup</code>.</li>
+        <li>Standards are injected as instructions. The model is told to follow them, and the lint baseline enforces what
+          tooling can, but nothing mechanically checks every plan against every rule.</li>
+      </ul>
+    </div>
+
+    <footer class="companion-footer">
+      Source: <code>README.md</code> (sections Code Standards, Lint baseline check, New-Package Prompt) in
+      <code>telavathil/tobin-superpowers</code><br>
+      Generated by the tobin-superpowers HTML companion.
+    </footer>
+  </div>
+</body>
+</html>
