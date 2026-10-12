@@ -9,7 +9,7 @@ An extension for the official
 
 superpowers provides the development workflows — brainstorming, writing
 plans, code review, subagent-driven development, and the rest. This plugin
-does not replace or copy any of them. It adds four things on top, and
+does not replace or copy any of them. It adds the features below, and
 superpowers keeps working (and updating) exactly as published.
 
 ## Features
@@ -32,6 +32,12 @@ superpowers keeps working (and updating) exactly as published.
   turns an existing or described skill into a portable candidate, reviews it
   with you, and guides a local import into this plugin after your explicit
   approval. It never commits, pushes, or opens a pull request.
+- **Code standards at plan time.** When a plan-writing skill runs, your
+  code standards are injected so the plan follows them. The first plan in
+  a repo also gets a one-off lint baseline check.
+- **New-package prompt.** Before an install command adds a package that
+  isn't in the project's manifest, Claude Code asks you to confirm it. This
+  guards against hallucinated (slopsquatted) package names.
 
 ## Installation
 
@@ -76,13 +82,15 @@ Then restart Claude Code.
 ### Verifying
 
 - `/plugin` lists `superpowers` and `tobin-superpowers` with the versions
-  you expect (this plugin: `1.1.0`). From a shell: `claude plugin list` and
+  you expect (this plugin: `1.2.0`). From a shell: `claude plugin list` and
   `claude plugin details tobin-superpowers@tobin-superpowers-dev`.
 - `tobin-superpowers` shows its three skills (`hybrid-planning`,
-  `html-companion`, `promote-skill`), plus any you promoted, and two hooks (`SessionStart`, `PostToolUse`). All
-  workflow skills come from `superpowers`.
-- `/hooks` lists the `SessionStart` and `PostToolUse` (`Write|Edit`) hooks
-  from this plugin.
+  `html-companion`, `promote-skill`), plus any you promoted, and three hook
+  events (`SessionStart`, `PreToolUse`, `PostToolUse`). All workflow skills
+  come from `superpowers`.
+- `/hooks` lists these hooks from this plugin: `SessionStart`, `PreToolUse`
+  on `Skill` (two commands) and on `Bash`, and `PostToolUse` on
+  `Write|Edit`.
 
 ## Workflow
 
@@ -123,6 +131,59 @@ Tested with superpowers 7.0.0, whose `writing-plans` already favours
 signatures and test assertions over full code. Older superpowers releases
 asked for complete code in every step; the precedence wording covers that
 case.
+
+## Code Standards
+
+`standards/` holds personal code standards (`index.yml` plus
+`global/*.md`). A `PreToolUse` hook on the `Skill` tool injects them into
+context whenever a plan-writing skill (`writing-plans` or `plan`, with or
+without a plugin prefix) is invoked. Plans are written against them and copy
+the binding rules into Global Constraints. The hook only informs and always
+exits 0.
+
+Claude Code moves any single hook's context over 10,000 characters to a
+file and shows Claude only a preview, so `hooks.json` runs
+`inject-plan-standards.py` twice: `1` sends the header, `index.yml` and the
+first half of `global/`, and `2` sends the rest.
+
+### Lint baseline check
+
+The first plan in a repo also tells Claude to follow `lint/check.md`: compare
+the repo's lint configs with the baselines in `lint/`, ask once where
+out-of-scope work is recorded (the debt location), and report the gaps.
+Claude then writes the result to a per-repo marker file:
+
+```
+${CLAUDE_PLUGIN_DATA}/repos/<repo-path-with-dashes>.md
+```
+
+`CLAUDE_PLUGIN_DATA` is usually
+`~/.claude/plugins/data/tobin-superpowers-tobin-superpowers-dev`. Later plans
+inject the marker instead of the check. Git worktrees share their main
+repo's marker. Outside a git repo, or without `CLAUDE_PLUGIN_DATA`, the
+check is skipped. To run the check again, delete the repo's marker file.
+
+## New-Package Prompt
+
+A `PreToolUse` hook on `Bash` (`scripts/ask-new-package.py`) reads install
+commands and asks you to confirm any package that isn't in the nearest
+manifest:
+
+| Commands | Manifest |
+| --- | --- |
+| `npm install`/`i`/`add`, `pnpm add`/`install`, `yarn add` | `package.json` (all dependency sections) |
+| `go get` | `go.mod` (subpackages of a listed module count as listed) |
+| `pip`/`pip3 install`, `python -m pip install`, `uv add`, `uv pip install`, `poetry add` | `pyproject.toml` and `requirements*.txt` |
+
+It handles chained commands (`&&`, `;`, `|`), `sudo`, `env` and `NAME=value`
+prefixes, and normalises Python names. The manifest is searched upward from
+the session's working directory. The hook only ever answers "ask": it never
+blocks or approves a command, and it stays silent for listed packages and
+other commands. If the check itself fails, it asks.
+
+Not covered: `npx`, `bunx`, `uvx`, `pipx`, `go install`, `bun add`,
+`yarn global add`, a `cd` earlier in the same command, and commands hidden
+behind `bash -c`, `time` or `nohup`.
 
 ## Plan Validation
 
@@ -361,11 +422,16 @@ unavailable, the candidate stays in staging with instructions to re-run.
   keeps working. `"disableAllHooks": true` in settings turns off every
   plugin's hooks.
 - **See hook runs:** `claude --debug hooks`, then look for
-  `session-context.py` and `validate-plan-hook.py`.
+  `session-context.py`, `inject-plan-standards.py`, `ask-new-package.py` and
+  `validate-plan-hook.py`.
 - **Reproduce plan validation:** (a plan without errors shows the offer reminder)
   `echo '{"tool_name":"Write","cwd":"'"$PWD"'","tool_input":{"file_path":"docs/superpowers/plans/x.md"}}' | python3 scripts/validate-plan-hook.py`
 - **Reproduce the spec reminder:** (the file must exist)
   `echo '{"tool_name":"Write","cwd":"'"$PWD"'","tool_input":{"file_path":"docs/superpowers/specs/x.md"}}' | python3 scripts/validate-plan-hook.py`
+- **Reproduce the standards injection:** (run with `2` for the second half)
+  `echo '{"tool_input":{"skill":"writing-plans"},"cwd":"'"$PWD"'"}' | python3 scripts/inject-plan-standards.py 1`
+- **Reproduce the new-package prompt:**
+  `echo '{"tool_input":{"command":"npm i left-padd"},"cwd":"'"$PWD"'"}' | python3 scripts/ask-new-package.py`
 - **No offers or preferences?** Check `/hooks` and that `python3` is on
   `PATH`.
 
@@ -374,17 +440,25 @@ unavailable, the candidate stays in staging with instructions to re-run.
 ```
 tobin-superpowers/
 ├── .claude-plugin/
-│   ├── plugin.json                # plugin manifest (1.1.0)
+│   ├── plugin.json                # plugin manifest (1.2.0)
 │   └── marketplace.json           # tobin-superpowers-dev marketplace
 ├── hooks/
-│   └── hooks.json                 # SessionStart + PostToolUse (Write|Edit)
+│   └── hooks.json                 # SessionStart + PreToolUse (Skill, Bash) + PostToolUse (Write|Edit)
 ├── scripts/
 │   ├── session-context.py         # injects planning + HTML companion preferences
+│   ├── inject-plan-standards.py   # injects standards/ when a plan skill runs
+│   ├── ask-new-package.py         # asks before installing a package not in the manifest
+│   ├── task-brief.sh              # task brief helper
 │   ├── validate-plan.py           # plan validator (CLI + library)
 │   ├── validate-plan-hook.py      # PostToolUse adapter for the plan validator
 │   ├── validate-html-companion.py # HTML companion validator (CLI + library)
 │   ├── validate-portable-skill.py # promote-skill candidate checks (read-only)
 │   └── import-portable-skill.py   # guided local import (plan, then --apply)
+├── standards/                     # code standards injected at plan time
+│   ├── index.yml
+│   └── global/*.md
+├── lint/                          # lint baselines, read on demand (never injected)
+│   └── check.md, typescript.md, go.md, python.md
 ├── skills/
 │   ├── hybrid-planning/SKILL.md   # lean, human-executable plan contract
 │   ├── html-companion/SKILL.md    # offer workflow, priorities, embedded guide

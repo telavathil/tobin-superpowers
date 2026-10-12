@@ -1,7 +1,7 @@
 # Maintaining tobin-superpowers
 
 tobin-superpowers is an independent extension. It owns only its own files —
-`hooks/`, `scripts/`, `skills/hybrid-planning/`, `skills/html-companion/`,
+`hooks/`, `scripts/`, `standards/`, `lint/`, `skills/hybrid-planning/`, `skills/html-companion/`,
 `skills/promote-skill/`, `skills/shared/`, and `tests/` — plus any skills you
 import with `promote-skill`, each in its own `skills/<name>/`. Official superpowers is installed and updated
 separately; nothing here is copied from it or merged with it.
@@ -107,6 +107,14 @@ when Claude Code changes:
   findings, never write to the plan or spec, and stay silent for files
   outside `docs/superpowers/plans/` and `docs/superpowers/specs/` (plans
   without errors and specs get a one-line offer reminder).
+- **PreToolUse** command hooks. Matcher `Skill`: input `tool_input.skill`
+  and `cwd`; output `hookSpecificOutput.additionalContext`. Claude Code
+  saves any one hook's context over 10,000 characters to a file and shows
+  only a 2,000-character preview, so the standards are split across two
+  commands (`inject-plan-standards.py 1` and `2`). Tests keep each part under
+  9,000. Matcher `Bash`: input `tool_input.command` and `cwd`; output
+  `permissionDecision: "ask"` with a reason, never `deny` or `allow`. Both
+  always exit 0 and print nothing for input they don't handle.
 - **Exec-form commands** (`"command": "python3"` with `args`) and
   `${CLAUDE_PLUGIN_ROOT}` for portable paths; `python3` must be on `PATH`.
 - **Skills:** `${CLAUDE_PLUGIN_ROOT}` is substituted in plugin skill content.

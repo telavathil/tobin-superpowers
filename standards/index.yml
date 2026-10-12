@@ -1,0 +1,25 @@
+# Agent OS Standards Index
+
+global:
+  comments:
+    description: When a code comment is allowed; no ticket IDs or Task refs anywhere in code, no stale file:line pointers
+  dependencies:
+    description: Check APIs against the installed version; vet and justify new packages before adding them
+  edge-cases:
+    description: List type-allowed edge inputs at plan time; test reachable ones; fix wrong types at the boundary, no downstream guards
+  fallbacks:
+    description: No invented defaults or swallowed errors for required values
+  logging:
+    description: One log per operation at the outcome; no before/after log pairs
+  plan-code:
+    description: Rules for code blocks inside implementation plans; copy standards into Global Constraints; name shared builders across tasks; refactoring scope and reporting; follow the best existing pattern
+  reuse:
+    description: Search before adding helpers or types; derive types from existing maps; no forwarding wrappers or mirrored lists
+  shims:
+    description: Update all callers and delete the old form; shims only for named callers that can't be updated
+  testing:
+    description: Shared typed test builders, literal expected values, no casts on domain data in specs
+  trust-types:
+    description: Validate at entry points once, then trust types; no guards or tests for type-impossible values
+  type-safety:
+    description: No any, as, non-null assertions or ts-ignore in new code; framework-mock exception in specs; prefer discriminated unions

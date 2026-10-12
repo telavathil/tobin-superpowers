@@ -1,5 +1,5 @@
 {
-  "description": "tobin-superpowers: load hybrid planning preferences at session start; advisory validation of implementation plans after Write/Edit",
+  "description": "tobin-superpowers: load hybrid planning preferences at session start; advisory validation of implementation plans after Write/Edit; code standards and a once-per-repo lint baseline check injected into plans, and a new-package prompt before installs (PreToolUse)",
   "hooks": {
     "SessionStart": [
       {
@@ -10,6 +10,44 @@
             "command": "python3",
             "args": [
               "${CLAUDE_PLUGIN_ROOT}/scripts/session-context.py"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/inject-plan-standards.py",
+              "1"
+            ],
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/inject-plan-standards.py",
+              "2"
+            ],
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/ask-new-package.py"
             ],
             "timeout": 10
           }
