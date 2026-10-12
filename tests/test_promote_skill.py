@@ -136,10 +136,14 @@ class SkillContractTests(unittest.TestCase):
 class IntegrationTests(unittest.TestCase):
     def test_hooks_unchanged(self):
         hooks = H.read_json(os.path.join(H.REPO_ROOT, "hooks", "hooks.json"))["hooks"]
-        self.assertEqual(set(hooks), {"SessionStart", "PostToolUse"})
+        self.assertEqual(set(hooks), {"SessionStart", "PreToolUse", "PostToolUse"})
         args = sorted(a for groups in hooks.values() for g in groups for h in g["hooks"] for a in h["args"])
-        self.assertEqual(args, ["${CLAUDE_PLUGIN_ROOT}/scripts/session-context.py",
-                                "${CLAUDE_PLUGIN_ROOT}/scripts/validate-plan-hook.py"])
+        self.assertEqual(args, ["${CLAUDE_PLUGIN_ROOT}/scripts/ask-new-package.py",
+                                "${CLAUDE_PLUGIN_ROOT}/scripts/inject-plan-standards.py",
+                                "${CLAUDE_PLUGIN_ROOT}/scripts/inject-plan-standards.py",
+                                "${CLAUDE_PLUGIN_ROOT}/scripts/session-context.py",
+                                "${CLAUDE_PLUGIN_ROOT}/scripts/validate-plan-hook.py",
+                                "1", "2"])
 
     def test_session_context_does_not_mention_promotion(self):
         out = subprocess.run([sys.executable, os.path.join(H.SCRIPTS, "session-context.py")],

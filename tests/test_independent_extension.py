@@ -82,6 +82,8 @@ class NoCopiedUpstreamSkillsTests(unittest.TestCase):
 class NoStaleReferencesTests(unittest.TestCase):
     def test_no_references_to_removed_skill_paths(self):
         for path in repo_text_files():
+            if os.path.basename(path) == "task-brief.sh":
+                continue  # locates upstream's own script in the plugin cache
             text = read(path)
             for removed in REMOVED_PATHS:
                 with self.subTest(path=os.path.relpath(path, REPO_ROOT), removed=removed):
@@ -113,8 +115,8 @@ class ManifestTests(unittest.TestCase):
         self.marketplace = json.loads(read(os.path.join(REPO_ROOT, ".claude-plugin", "marketplace.json")))
         self.entry = self.marketplace["plugins"][0]
 
-    def test_versions_agree_at_1_1_0(self):
-        self.assertEqual(self.plugin["version"], "1.1.0")
+    def test_versions_agree_at_1_2_0(self):
+        self.assertEqual(self.plugin["version"], "1.2.0")
         self.assertEqual(self.entry["version"], self.plugin["version"])
         self.assertEqual(self.entry["name"], self.plugin["name"])
         self.assertEqual(self.plugin["name"], "tobin-superpowers")
@@ -164,7 +166,7 @@ class CiWorkflowTests(unittest.TestCase):
 class HookAndScriptTests(unittest.TestCase):
     def test_hook_script_paths_resolve(self):
         config = json.loads(read(os.path.join(REPO_ROOT, "hooks", "hooks.json")))["hooks"]
-        args = [a for groups in config.values() for g in groups for h in g["hooks"] for a in h.get("args", [])]
+        args = [h["args"][0] for groups in config.values() for g in groups for h in g["hooks"] if h.get("args")]
         self.assertTrue(args)
         for arg in args:
             with self.subTest(arg=arg):
