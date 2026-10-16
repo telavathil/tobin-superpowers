@@ -6,6 +6,42 @@ tobin-superpowers is an independent extension. It owns only its own files —
 import with `promote-skill`, each in its own `skills/<name>/`. Official superpowers is installed and updated
 separately; nothing here is copied from it or merged with it.
 
+## Repository Layout
+
+```
+tobin-superpowers/
+├── .claude-plugin/
+│   ├── plugin.json                # plugin manifest (1.2.0)
+│   └── marketplace.json           # tobin-superpowers-dev marketplace
+├── hooks/
+│   └── hooks.json                 # SessionStart + PreToolUse (Skill, Bash) + PostToolUse (Write|Edit)
+├── scripts/
+│   ├── session-context.py         # injects planning + HTML companion preferences
+│   ├── inject-plan-standards.py   # injects standards/ when a plan skill runs
+│   ├── ask-new-package.py         # asks before installing a package not in the manifest
+│   ├── task-brief.sh              # task brief helper
+│   ├── validate-plan.py           # plan validator (CLI + library)
+│   ├── validate-plan-hook.py      # PostToolUse adapter for the plan validator
+│   ├── validate-html-companion.py # HTML companion validator (CLI + library)
+│   ├── validate-portable-skill.py # promote-skill candidate checks (read-only)
+│   └── import-portable-skill.py   # guided local import (plan, then --apply)
+├── standards/                     # code standards injected at plan time
+│   ├── index.yml
+│   └── global/*.md
+├── lint/                          # lint baselines, read on demand (never injected)
+│   └── check.md, typescript.md, go.md, python.md
+├── skills/
+│   ├── hybrid-planning/SKILL.md   # lean, human-executable plan contract
+│   ├── html-companion/SKILL.md    # offer workflow, priorities, embedded guide
+│   ├── promote-skill/SKILL.md     # manual skill promotion workflow
+│   └── shared/html-companion-guide.md  # source of the embedded guide
+├── docs/                          # per-feature user docs linked from the README
+├── tests/                         # python3 -m unittest discover -s tests -v
+│   └── fixtures/                  # promote/: synthetic diagram-as-code skill
+├── MAINTAINING.md
+└── README.md
+```
+
 ## Updating This Plugin
 
 1. Make the change with tests first, then run the full suite:
@@ -72,13 +108,14 @@ Then check, in a scratch git repository:
 5. **HTML companions.** For each of the four workflows, note whether the
    offer appears at the handoff, once, without derailing the workflow; answer
    "yes" once and run `python3 scripts/validate-html-companion.py <html>
-   --source <md>`, confirm the markdown is unchanged and the HTML untracked.
-   Offers are best-effort — record the results in the README's "Observed
-   offer behaviour" table rather than treating a miss as a release blocker.
+--source <md>`, confirm the markdown is unchanged and the HTML untracked.
+   Offers are best-effort — record the results in the "Observed offer
+   behaviour" table in `docs/html-companions.md` rather than treating a miss
+   as a release blocker.
 6. **Artifact paths.** If upstream moves specs or plans out of
    `docs/superpowers/specs/` and `docs/superpowers/plans/`, update the hook's
    `PLAN_DIR_PARTS` / `SPEC_DIR_PARTS`, the `html-companion` skill, and the
-   README together.
+   docs (`README.md`, `docs/`) together.
 7. **Implicit spec approval.** In `superpowers:brainstorming`, answer the
    spec-review handoff with "write the plan" (no "approved"). The design-spec
    offer should come first, as its own message, before writing-plans starts.
@@ -86,7 +123,8 @@ Then check, in a scratch git repository:
    `/compact` mid-plan). The plan offer should still appear before the
    execution handoff — the PostToolUse reminder is what carries it there.
 
-Record steps 5, 7 and 8 in the README's "Observed offer behaviour" table.
+Record steps 5, 7 and 8 in the "Observed offer behaviour" table in
+`docs/html-companions.md`.
 
 ## Claude Code Requirements
 
