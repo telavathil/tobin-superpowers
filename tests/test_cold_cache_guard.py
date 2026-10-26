@@ -112,8 +112,8 @@ class GuardTests(unittest.TestCase):
             self.assertEqual(self.mod.main(now=NOW), 0)
 
     def test_unwritable_state_still_blocks_once_per_run(self):
-        os.environ["CLAUDE_PLUGIN_DATA"] = "/dev/null/nope"
         self.write(assistant(timedelta(hours=3), 640_000))
+        os.environ["CLAUDE_PLUGIN_DATA"] = os.path.join(self.path, "nope")  # under a file: unwritable on every OS
         self.assertEqual(self.run_main()[1]["decision"], "block")
 
 
