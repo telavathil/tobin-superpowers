@@ -14,11 +14,12 @@ tobin-superpowers/
 │   ├── plugin.json                # plugin manifest (1.2.0)
 │   └── marketplace.json           # tobin-superpowers-dev marketplace
 ├── hooks/
-│   └── hooks.json                 # SessionStart + PreToolUse (Skill, Bash) + PostToolUse (Write|Edit)
+│   └── hooks.json                 # SessionStart + PreToolUse (Skill, Bash) + PostToolUse (Write|Edit) + UserPromptSubmit
 ├── scripts/
 │   ├── session-context.py         # injects planning + HTML companion preferences
 │   ├── inject-plan-standards.py   # injects standards/ when a plan skill runs
 │   ├── ask-new-package.py         # asks before installing a package not in the manifest
+│   ├── stale-session-reminder.py  # suggests /compact when a large session's cache expired
 │   ├── task-brief.sh              # task brief helper
 │   ├── validate-plan.py           # plan validator (CLI + library)
 │   ├── validate-plan-hook.py      # PostToolUse adapter for the plan validator

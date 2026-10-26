@@ -258,7 +258,7 @@ class WiringTests(unittest.TestCase):
             entry = json.load(f)["plugins"][0]
         self.assertEqual(entry["name"], plugin["name"])
         self.assertEqual(entry["version"], plugin["version"])
-        self.assertEqual(plugin["version"], "1.2.0")
+        self.assertEqual(plugin["version"], "1.3.0")
 
 
     def test_skill_frontmatter(self):
