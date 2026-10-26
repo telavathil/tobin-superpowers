@@ -425,7 +425,7 @@ class HookConfigTests(unittest.TestCase):
         }])
 
     def test_only_expected_events(self):
-        self.assertEqual(set(self.config), {"SessionStart", "PreToolUse", "PostToolUse"})
+        self.assertEqual(set(self.config), {"SessionStart", "PreToolUse", "PostToolUse", "UserPromptSubmit"})
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@ keeps working and updating exactly as published.
 | Plan validation             | An advisory structural check runs whenever Claude writes a plan in `docs/superpowers/plans/`. Also available as a CLI.                                                  | [docs/plan-validation.md](docs/plan-validation.md)       |
 | HTML companions             | At the end of a spec, plan, code review, or subagent run, Claude offers a self-contained `.html` version to share, created only if you say yes.                         | [docs/html-companions.md](docs/html-companions.md)       |
 | New-package prompt          | Asks you to confirm before an install command adds a package that isn't in the project's manifest (guards against slopsquatting).                                       | [docs/new-package-prompt.md](docs/new-package-prompt.md) |
+| Stale-session reminder      | When you return to a large session after its prompt cache has expired, suggests `/compact` before the next turn re-writes the whole context.                            | [docs/stale-session-reminder.md](docs/stale-session-reminder.md) |
 | Skill promotion             | Manual `/tobin-superpowers:promote-skill` workflow that turns a skill into a portable candidate and guides a local import after your approval. Never commits or pushes. | [docs/skill-promotion.md](docs/skill-promotion.md)       |
 
 ## Installation
