@@ -1,5 +1,5 @@
 {
-  "description": "tobin-superpowers: load hybrid planning preferences at session start; advisory validation of implementation plans after Write/Edit; code standards and a once-per-repo lint baseline check injected into plans, and a new-package prompt before installs (PreToolUse)",
+  "description": "tobin-superpowers: load hybrid planning preferences at session start; advisory validation of implementation plans after Write/Edit; code standards and a once-per-repo lint baseline check injected into plans, a new-package prompt before installs (PreToolUse); and a one-time stop before a prompt re-writes a large, cold prompt cache (UserPromptSubmit)",
   "hooks": {
     "SessionStart": [
       {
@@ -76,7 +76,7 @@
             "type": "command",
             "command": "python3",
             "args": [
-              "${CLAUDE_PLUGIN_ROOT}/scripts/stale-session-reminder.py"
+              "${CLAUDE_PLUGIN_ROOT}/scripts/cold-cache-guard.py"
             ],
             "timeout": 10
           }

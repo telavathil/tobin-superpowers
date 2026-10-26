@@ -19,7 +19,7 @@ tobin-superpowers/
 │   ├── session-context.py         # injects planning + HTML companion preferences
 │   ├── inject-plan-standards.py   # injects standards/ when a plan skill runs
 │   ├── ask-new-package.py         # asks before installing a package not in the manifest
-│   ├── stale-session-reminder.py  # suggests /compact when a large session's cache expired
+│   ├── cold-cache-guard.py        # stops a prompt that would re-write a large, cold cache
 │   ├── task-brief.sh              # task brief helper
 │   ├── validate-plan.py           # plan validator (CLI + library)
 │   ├── validate-plan-hook.py      # PostToolUse adapter for the plan validator
