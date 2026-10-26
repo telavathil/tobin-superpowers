@@ -139,10 +139,10 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(set(hooks), {"SessionStart", "PreToolUse", "PostToolUse", "UserPromptSubmit"})
         args = sorted(a for groups in hooks.values() for g in groups for h in g["hooks"] for a in h["args"])
         self.assertEqual(args, ["${CLAUDE_PLUGIN_ROOT}/scripts/ask-new-package.py",
+                                "${CLAUDE_PLUGIN_ROOT}/scripts/cold-cache-guard.py",
                                 "${CLAUDE_PLUGIN_ROOT}/scripts/inject-plan-standards.py",
                                 "${CLAUDE_PLUGIN_ROOT}/scripts/inject-plan-standards.py",
                                 "${CLAUDE_PLUGIN_ROOT}/scripts/session-context.py",
-                                "${CLAUDE_PLUGIN_ROOT}/scripts/stale-session-reminder.py",
                                 "${CLAUDE_PLUGIN_ROOT}/scripts/validate-plan-hook.py",
                                 "1", "2"])
 

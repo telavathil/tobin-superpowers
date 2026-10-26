@@ -115,8 +115,8 @@ class ManifestTests(unittest.TestCase):
         self.marketplace = json.loads(read(os.path.join(REPO_ROOT, ".claude-plugin", "marketplace.json")))
         self.entry = self.marketplace["plugins"][0]
 
-    def test_versions_agree_at_1_3_0(self):
-        self.assertEqual(self.plugin["version"], "1.3.0")
+    def test_versions_agree_at_1_4_0(self):
+        self.assertEqual(self.plugin["version"], "1.4.0")
         self.assertEqual(self.entry["version"], self.plugin["version"])
         self.assertEqual(self.entry["name"], self.plugin["name"])
         self.assertEqual(self.plugin["name"], "tobin-superpowers")
