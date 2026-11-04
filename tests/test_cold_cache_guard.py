@@ -25,10 +25,16 @@ def load_module():
     return module
 
 
-def assistant(ago, context, model="claude-opus-5-5", msg_id="m1"):
+def assistant(ago, context, model="claude-opus-5-5", msg_id="m1", ttl=None):
     ts = (NOW - ago).isoformat().replace("+00:00", "Z")
-    return {"type": "assistant", "timestamp": ts, "message": {"id": msg_id, "model": model, "usage": {
-        "input_tokens": 2, "cache_creation_input_tokens": 1000, "cache_read_input_tokens": context - 1002}}}
+    usage = {"input_tokens": 2, "cache_creation_input_tokens": 1000, "cache_read_input_tokens": context - 1002}
+    if ttl is not None:
+        tiers = {"5m": (1000, 0), "1h": (0, 1000), "both": (1000, 1000), "none": (0, 0)}[ttl]
+        usage["cache_creation"] = {"ephemeral_5m_input_tokens": tiers[0], "ephemeral_1h_input_tokens": tiers[1]}
+        if ttl == "none":
+            usage["cache_creation_input_tokens"] = 0
+            usage["cache_read_input_tokens"] += 1000
+    return {"type": "assistant", "timestamp": ts, "message": {"id": msg_id, "model": model, "usage": usage}}
 
 
 class GuardTests(unittest.TestCase):
@@ -110,6 +116,43 @@ class GuardTests(unittest.TestCase):
         self.assertEqual(self.run_main(), (0, None))
         with mock.patch("sys.stdin", io.StringIO("not json")):
             self.assertEqual(self.mod.main(now=NOW), 0)
+
+    def test_1h_cache_warm_at_30_minutes_passes(self):
+        self.write(assistant(timedelta(minutes=30), 900_000, ttl="1h"))
+        self.assertEqual(self.run_main(), (0, None))
+
+    def test_1h_cache_cold_at_61_minutes_blocks_at_2x_price(self):
+        self.write(assistant(timedelta(minutes=61), 640_000, ttl="1h"))
+        out = self.run_main()[1]
+        self.assertEqual(out["decision"], "block")
+        for text in ("640K", "$5.12", "idle 1h"):
+            self.assertIn(text, out["reason"])
+
+    def test_5m_cache_cold_at_6_minutes_blocks(self):
+        self.write(assistant(timedelta(minutes=6), 640_000, ttl="5m"))
+        self.assertIn("$3.20", self.run_main()[1]["reason"])
+
+    def test_zero_write_turn_inherits_1h_from_earlier_turn(self):
+        self.write(assistant(timedelta(minutes=50), 900_000, msg_id="m1", ttl="1h"),
+                   assistant(timedelta(minutes=30), 900_000, msg_id="m2", ttl="none"))
+        self.assertEqual(self.run_main(), (0, None))
+
+    def test_zero_write_with_no_earlier_write_assumes_5_minutes(self):
+        self.write(assistant(timedelta(minutes=10), 900_000, ttl="none"))
+        self.assertEqual(self.run_main()[1]["decision"], "block")
+
+    def test_mixed_tier_response_uses_5_minutes(self):
+        self.write(assistant(timedelta(minutes=10), 900_000, ttl="both"))
+        self.assertEqual(self.run_main()[1]["decision"], "block")
+
+    def test_latest_writing_turn_sets_tier(self):
+        self.write(assistant(timedelta(minutes=50), 900_000, msg_id="m1", ttl="5m"),
+                   assistant(timedelta(minutes=20), 900_000, msg_id="m2", ttl="1h"))
+        self.assertEqual(self.run_main(), (0, None))
+
+    def test_sonnet_1h_price(self):
+        self.write(assistant(timedelta(hours=2), 300_000, "claude-sonnet-5-5", ttl="1h"))
+        self.assertIn("$1.20", self.run_main()[1]["reason"])
 
     def test_unwritable_state_still_blocks_once_per_run(self):
         self.write(assistant(timedelta(hours=3), 640_000))
